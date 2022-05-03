@@ -281,7 +281,7 @@ if st.session_state['login_status'] == 'Yes':
                 read_data = pd.read_excel(load_data,engine='openpyxl')
                 # read_data = pd.read_excel(load_data)
                 st.write(read_data)
-                7-+
+                
                 # get_content = requests.get(load_data).content
                 # r = requests.get(load_data)
                 # open('temp.xls', 'wb').write(r.content)
