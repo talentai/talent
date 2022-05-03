@@ -29,6 +29,24 @@ from io import BytesIO
 
 from datetime import datetime
 
+# Firebase Authentication-----------------------------------------------------------------------------------------------------------------------
+firebaseConfig = {
+    'apiKey': "AIzaSyC6yIfxcoRtWmNUQZDER3ZZPgXf1ZbEcTw",
+    'authDomain': "talent-turnover.firebaseapp.com",
+    'projectId': "talent-turnover",
+    'storageBucket': "talent-turnover.appspot.com",
+    'messagingSenderId': "1008257138200",
+    'appId': "1:1008257138200:web:645e7b9138bcfb8659cd6d",
+    'measurementId': "G-X3MFWDFWTY",
+    'databaseURL': "https://talent-turnover-default-rtdb.firebaseio.com/"  
+}
+
+fb = pb.initialize_app(firebaseConfig)
+auth = fb.auth()
+db = fb.database()
+storage = fb.storage()
+
+# Helper Functions -----------------------------------------------------------------------------------------------------------------------
 def get_excel_file_downloader_html(data, file_label='File'):
     bin_str = base64.b64encode(data).decode()
     href = f'<a href="data:file/xlsx;base64,{bin_str}" download="{file_label}">{file_label}</a>'
@@ -48,6 +66,7 @@ def clear_file(exclude_list):
         if key not in exclude_list:
             del st.session_state[key]
 
+# Streamlit initialize session state to track login, upload status, data, and others ------------------------------------------------ 
 if 'login_status' not in st.session_state:
     st.session_state['login_status'] = 'No'
 
@@ -62,56 +81,18 @@ if 'username' not in st.session_state:
     
 if 'user' not in st.session_state:
     st.session_state['user'] = None
-        
-# Configuration Key
-# firebaseConfig = {
-#     'apiKey': "AIzaSyBlDNmyf4KhVwXaOYC6D0I0KR03XYQ78yU",
-#     'authDomain': "pay-equity.firebaseapp.com",
-#     'projectId': "pay-equity",
-#     'storageBucket': "pay-equity.appspot.com",
-#     'messagingSenderId': "911725548540",
-#     'appId': "1:911725548540:web:a0aebc04538539ea941879",
-#    ' measurementId': "G-05TJ6HSVY4",
-#     'databaseURL': "https://pay-equity-default-rtdb.firebaseio.com/"
-# }
 
-firebaseConfig = {
-    'apiKey': "AIzaSyBlDNmyf4KhVwXaOYC6D0I0KR03XYQ78yU",
-    'authDomain': "pay-equity.firebaseapp.com",
-    'projectId': "pay-equity",
-    'storageBucket': "pay-equity.appspot.com",
-    'messagingSenderId': "911725548540",
-    'appId': "1:911725548540:web:a0aebc04538539ea941879",
-   ' measurementId': "G-05TJ6HSVY4",
-    'databaseURL': "https://pay-equity-default-rtdb.firebaseio.com/"   
-    # 'apiKey': "AIzaSyDgjFrMp-toetqVzT6IM52y-Hyj2PjNCWk",
-    # 'authDomain': "turnover-7d9d1.firebaseapp.com",
-    # 'projectId': "turnover-7d9d1",
-    # 'storageBucket': "turnover-7d9d1.appspot.com",
-    # 'messagingSenderId': "198534269257",
-    # 'appId': "1:198534269257:web:493a7c15812c5ad42c7298",
-    # 'measurementId': "G-0LX14JQSEG"
-    # 'databaseURL':"https://turnover-7d9d1-default-rtdb.firebaseio.com/"
-}
-
-# Firebase Authentication
-fb = pb.initialize_app(firebaseConfig)
-auth = fb.auth()
-
-# Database
-db = fb.database()
-storage = fb.storage()
-st.sidebar.title("Our community app")
+# Streamlit Login UI -----------------------------------------------------------------------------------------------------------------------
+st.sidebar.title("Please login to start:")
 
 # Authentication
-choice = st.sidebar.selectbox('login/Signup', ['Login', 'Sign up'],on_change=clear_state)
+choice = st.sidebar.selectbox('login/Signup', ['Login', 'Sign up'],index=0,on_change=clear_state)
 
 # Obtain User Input for email and password
 login_place = st.sidebar.empty()
 login_container = login_place.container()
 
 # App 
-
 # Sign up Block
 if choice == 'Sign up':
     username = st.sidebar.text_input(
