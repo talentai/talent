@@ -29,6 +29,8 @@ from io import BytesIO
 
 from datetime import datetime
 
+st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
+
 # Firebase Authentication-----------------------------------------------------------------------------------------------------------------------
 firebaseConfig = {
     'apiKey': "AIzaSyC6yIfxcoRtWmNUQZDER3ZZPgXf1ZbEcTw",
@@ -38,7 +40,7 @@ firebaseConfig = {
     'messagingSenderId': "1008257138200",
     'appId': "1:1008257138200:web:645e7b9138bcfb8659cd6d",
     'measurementId': "G-X3MFWDFWTY",
-    'databaseURL': "https://talent-turnover-default-rtdb.firebaseio.com/"  
+    'databaseURL': "https://talent-turnover-default-rtdb.firebaseio.com"  
 }
 
 fb = pb.initialize_app(firebaseConfig)
@@ -81,79 +83,90 @@ if 'username' not in st.session_state:
     
 if 'user' not in st.session_state:
     st.session_state['user'] = None
+    
+if 'cal_result' not in st.session_state:
+    st.session_state['cal_result'] = np.nan
 
 # Streamlit Login UI -----------------------------------------------------------------------------------------------------------------------
-st.sidebar.title("Please login to start:")
-
 # Authentication
-choice = st.sidebar.selectbox('login/Signup', ['Login', 'Sign up'],index=0,on_change=clear_state)
+choice_place = st.sidebar.empty()
+choice_container = choice_place.container()
 
 # Obtain User Input for email and password
 login_place = st.sidebar.empty()
 login_container = login_place.container()
 
-# App 
-# Sign up Block
-if choice == 'Sign up':
-    username = st.sidebar.text_input(
-        'Please input your user name', value='Default')
-    company = st.sidebar.text_input(
-        'Please input your company name', value='Default')
-    submit = st.sidebar.button('Create my account')
+signup_place = st.sidebar.empty()
+signup_container = signup_place.container()
 
-    if submit:
-        user = auth.create_user_with_email_and_password(email, password)
-        st.success('Your account is created suceesfully!')
-        st.balloons()
-        # Sign in
-        user = auth.sign_in_with_email_and_password(email, password)
-        db.child(user['localId']).child("ID").set(user['localId'])
-        db.child(user['localId']).child("Username").set(username)
-        db.child(user['localId']).child("Company").set(company)
-        db.child(user['localId']).child("Email").set(email)
-        db.child(user['localId']).child("Password").set(password)
-        
-        st.title('Welcome' + username)
-        st.info('Login via login drop down selection')
-        st.session_state['login_status'] = 'Yes'
-        st.session_state['user'] = user
+# App
+# choice = 'Login'
+st.title('Attrition Analytics')
+st.write('We are building an analytics platform to better understand turnover risk')
 
-# Login Block
+if st.session_state['login_status'] == 'No':
+    choice_container.title("Please login to start:")
+    choice = choice_container.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state)
+    # st.write(choice)
+    # Sign up Block
+    if (choice == 'Sign up'):
+        with signup_container.form("signup_form"):
+            email = st.text_input('Please enter your email address')
+            password = st.text_input('Please enter your password',type = 'password')    
+            username = st.text_input('Please input your user name', value='Default')
+            company = st.text_input('Please input your company name', value='Default')
+            signup = st.form_submit_button('Create my account')
+        if signup:
+            try:
+                user = auth.create_user_with_email_and_password(email, password)
+                db.child(user['localId']).child("ID").set(user['localId'])
+                db.child(user['localId']).child("Username").set(username)
+                db.child(user['localId']).child("Company").set(company)
+                db.child(user['localId']).child("Email").set(email)
+                db.child(user['localId']).child("Password").set(password)
 
-if (choice == 'Login') and (st.session_state['login_status'] == "No"):
-    email = login_container.text_input('Please enter your email address')
-    password = login_container.text_input('Please enter your password',type = 'password')
-    login = login_container.button('Login')
-    if login:
-        try:
-            user = auth.sign_in_with_email_and_password(email,password)
-            # user_info = auth.get_account_info()
-            username = db.child(user['localId']).child("Username").get().val()
-            st.session_state['login_status'] = "Yes"
-            st.session_state['user'] = user
-            st.session_state['username'] = username
-            login_place.empty()
-        except:
-            st.write('User not found, please sign up with drop down selection')
-            st.stop()
-           
-        st.title('Welcome')
-        st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
+                st.session_state['login_status'] = "Yes"
+                st.session_state['user'] = user
+                st.session_state['username'] = username
+                st.session_state['choice_bar'] = 'Login'
+                choice_place.empty()
+                signup_place.empty()
+                st.success('Your account is created suceesfully!')
+                st.title('Welcome ' + st.session_state['username'])
+                st.balloons()
+            except:
+                st.write('Unable to signup user, please try anther email')
+                st.stop()
 
-# if st.session_state['login_status'] == 'Yes':
-#     username = st.session_state['username']
-#     st.sidebar.write('Welcome ' + username)
-#     logout = st.sidebar.button('Logout',on_click=clear_state,key = 'logout_continue')
-#     if logout:
-#         # login_place.empty()
-#         st.experimental_rerun()
+    # Login Block
+    if (choice == 'Login'):
+        with login_container.form("login_form"):
+            email = st.text_input('Please enter your email address')
+            password = st.text_input('Please enter your password',type = 'password')
+            login = st.form_submit_button('Login')
+        if login:
+            try:
+                user = auth.sign_in_with_email_and_password(email,password)
+                # user_info = auth.get_account_info()
+                username = db.child(user['localId']).child("Username").get().val()
+                st.session_state['login_status'] = "Yes"
+                st.session_state['user'] = user
+                st.session_state['username'] = username
+                choice_place.empty()
+                login_place.empty()
+                st.title('Welcome ' + st.session_state['username'])
+                st.balloons()
+            except:
+                st.write('User not found, please sign up with drop down selection')
+                st.stop()
         
 if st.session_state['login_status'] == 'Yes':
-    st.write(st.session_state)
+    # choice_place.empty()
+    # st.write(st.session_state)
     user = st.session_state['user']
     username = st.session_state['username']
     st.sidebar.write('Welcome ' + username)
-    logout = st.sidebar.button('Logout',on_click=clear_state,key = 'logout_continue')
+    logout = st.sidebar.button('Logout',on_click=clear_state)
     if logout:
         # login_place.empty()
         st.experimental_rerun()
@@ -161,17 +174,18 @@ if st.session_state['login_status'] == 'Yes':
     bio = st.radio('Jump to',['Home','Calculation'])
 
     if bio == 'Calculation':
-        cal_start = st.number_input('Insert a number')
-        st.write('your starting input is: '+str(cal_start))
-
-        cal_add = st.number_input('Add a number')
-        st.write('your add number is: '+ str(cal_add))
-
-        cal_result = cal_start+cal_add
-        st.write('your final number is: '+str(cal_result))
-
+        with st.form("my_form"):
+            cal_start = st.number_input('Insert a number')
+            cal_add = st.number_input('Add a number')
+            cal_submit = st.form_submit_button("Submit")
+        if cal_submit:
+            cal_result = cal_start+cal_add
+            st.write('your final number is: '+str(cal_result))
+            st.session_state['cal_result'] = cal_result
+        
         butt_save = st.button('Save result')
         if butt_save:
+            cal_result = st.session_state['cal_result']
             now = datetime.now()
             dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
             cal_save = {'Calculation' : cal_result,
@@ -179,7 +193,8 @@ if st.session_state['login_status'] == 'Yes':
 
             db.child(user['localId']).child("Calculation").push(cal_save)
             st.balloons()
-        st.write(st.session_state)
+
+        # st.write(st.session_state)
         
     elif bio == 'Home':
         st.write("You are home!")
@@ -220,18 +235,18 @@ if st.session_state['login_status'] == 'Yes':
             # save_path = get_excel_file_downloader_url(processed_data, 'save_data.xlsx')
             # save_path = 'Test/test.xlsx'
             
-            save_path = uploaded_file
+#             save_path = uploaded_file
             
-            # uid = user['localId']
-            fireb_upload = storage.child(user['localId']).put(save_path,user['idToken'])
-            data_url = storage.child(user['localId']).get_url(fireb_upload['downloadTokens']) 
-            db.child(user['localId']).child("Data").child("Store_URL").push(data_url)
+#             # uid = user['localId']
+#             fireb_upload = storage.child(user['localId']).put(save_path,user['idToken'])
+#             data_url = storage.child(user['localId']).get_url(fireb_upload['downloadTokens']) 
+#             db.child(user['localId']).child("Data").child("Store_URL").push(data_url)
 
-            st.write(save_path)
+#             st.write(save_path)
             st.balloons()
         
         butt_load_data = st.button('Load data')
-        butt_load_file = st.button('Load file')
+        # butt_load_file = st.button('Load file')
         
         if butt_load_data:
             data_all = db.child(user['localId']).child("Data").get().val()
@@ -240,35 +255,43 @@ if st.session_state['login_status'] == 'Yes':
                 # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
                 # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
                 val_by_time = db.child(user['localId']).sort(val, "Timestamp")
-                for myfile in val_by_time.each():
-                    myfile = myfile.val()
-                    if myfile['Filename'] == 'first':
-                        download = pd.DataFrame.from_dict(myfile['File']).to_excel('download.xlsx')
-                    st.write(myfile['Filename'])
-                    st.write(myfile['Timestamp'])
+                myfile = val_by_time.each()[0].val()
+                st.write(len(val_by_time.each()))
+                st.write(myfile['Filename'])
+                st.write(myfile['Timestamp'])
+                st.write(pd.DataFrame.from_dict(myfile['File']))
+                download = pd.DataFrame.from_dict(myfile['File']).to_excel('download.xlsx')
+                
+                # for myfile in val_by_time.each():
+                #     myfile = myfile.val()
+                #     # if myfile['Filename'] == 'first':
+                #     #     download = pd.DataFrame.from_dict(myfile['File']).to_excel('download.xlsx')
+                #     st.write(myfile['Filename'])
+                #     st.write(myfile['Timestamp'])
+                #     st.write(pd.DataFrame.from_dict(myfile['File']))
         
-        if butt_load_file:
-            file_all = db.child(user['localId']).child("Data").child("Store_URL").get().val()
-            if file_all is not None:
-                val = db.child(user['localId']).child("Data").child("Store_URL").get()
-                mydata = val.each()[0]
-                # load_data = mydata.val()+'?raw=true'
-                load_data = mydata.val()
-                st.write(load_data)
+#         if butt_load_file:
+#             file_all = db.child(user['localId']).child("Data").child("Store_URL").get().val()
+#             if file_all is not None:
+#                 val = db.child(user['localId']).child("Data").child("Store_URL").get()
+#                 mydata = val.each()[0]
+#                 # load_data = mydata.val()+'?raw=true'
+#                 load_data = mydata.val()
+#                 st.write(load_data)
                 
-                # get_content = requests.get(load_data).content
-                # read_data = pd.read_excel(io.StringIO(get_content.decode('utf-8')))
-                # read_data = pd.read_csv(get_content, encoding= 'unicode_escape')
-                read_data = pd.read_excel(load_data,engine='openpyxl')
-                # read_data = pd.read_excel(load_data)
-                st.write(read_data)
+#                 # get_content = requests.get(load_data).content
+#                 # read_data = pd.read_excel(io.StringIO(get_content.decode('utf-8')))
+#                 # read_data = pd.read_csv(get_content, encoding= 'unicode_escape')
+#                 read_data = pd.read_excel(load_data,engine='openpyxl')
+#                 # read_data = pd.read_excel(load_data)
+#                 st.write(read_data)
                 
-                # get_content = requests.get(load_data).content
-                # r = requests.get(load_data)
-                # open('temp.xls', 'wb').write(r.content)
-                # read_data = pd.read_excel('temp.xls')
+#                 # get_content = requests.get(load_data).content
+#                 # r = requests.get(load_data)
+#                 # open('temp.xls', 'wb').write(r.content)
+#                 # read_data = pd.read_excel('temp.xls')
                 
-                read_data = pd.read_excel(load_data,engine='openpyxl')
+                # read_data = pd.read_excel(load_data,engine='openpyxl')
                 # read_data['price_update10'] = read_data['price'] * 10
                 
                 # st.write(read_data)
@@ -285,4 +308,4 @@ if st.session_state['login_status'] == 'Yes':
                     # st.write(read_data)
                     # st.write(myfile['Timestamp'])
         
-        st.write(st.session_state)
+        # st.write(st.session_state)

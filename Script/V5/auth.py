@@ -100,65 +100,76 @@ signup_place = st.sidebar.empty()
 signup_container = signup_place.container()
 
 # App
-# choice = 'Login'
-st.title('Attrition Analytics')
-st.write('We are building an analytics platform to better understand turnover risk')
-
+choice = 'Login'
 if st.session_state['login_status'] == 'No':
     choice_container.title("Please login to start:")
-    choice = choice_container.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state)
-    # st.write(choice)
-    # Sign up Block
-    if (choice == 'Sign up'):
-        with signup_container.form("signup_form"):
-            email = st.text_input('Please enter your email address')
-            password = st.text_input('Please enter your password',type = 'password')    
-            username = st.text_input('Please input your user name', value='Default')
-            company = st.text_input('Please input your company name', value='Default')
-            signup = st.form_submit_button('Create my account')
-        if signup:
-            try:
-                user = auth.create_user_with_email_and_password(email, password)
-                db.child(user['localId']).child("ID").set(user['localId'])
-                db.child(user['localId']).child("Username").set(username)
-                db.child(user['localId']).child("Company").set(company)
-                db.child(user['localId']).child("Email").set(email)
-                db.child(user['localId']).child("Password").set(password)
+    choice = choice_container.selectbox('login/Signup', ['Login', 'Sign up'],index=0,on_change=clear_state,key='choice_bar')
+    
+# Sign up Block
+if (choice == 'Sign up') and (st.session_state['login_status'] == "No"):
+    with st.sidebar.form("my_form"):
+        email = signup_container.text_input('Please enter your email address')
+        password = signup_container.text_input('Please enter your password',type = 'password')    
+        username = signup_container.text_input('Please input your user name', value='Default')
+        company = signup_container.text_input('Please input your company name', value='Default')
+        signup = signup_container.form_submit_button('Create my account')
+    # email = signup_container.text_input('Please enter your email address')
+    # password = signup_container.text_input('Please enter your password',type = 'password')    
+    # username = signup_container.text_input('Please input your user name', value='Default')
+    # company = signup_container.text_input('Please input your company name', value='Default')
+    # signup = signup_container.button('Create my account')
+    
+    if signup:
+        try:
+            user = auth.create_user_with_email_and_password(email, password)
+            db.child(user['localId']).child("ID").set(user['localId'])
+            db.child(user['localId']).child("Username").set(username)
+            db.child(user['localId']).child("Company").set(company)
+            db.child(user['localId']).child("Email").set(email)
+            db.child(user['localId']).child("Password").set(password)
+        
+            st.session_state['login_status'] = "Yes"
+            st.session_state['user'] = user
+            st.session_state['username'] = username
+            st.session_state['choice_bar'] = 'Login'
+            choice_place.empty()
+            signup_place.empty()
+            st.success('Your account is created suceesfully!')
+            st.title('Welcome ' + st.session_state['username'])
+            st.balloons()
+        except:
+            st.write('Unable to signup user, please try anther email')
+            st.stop()
 
-                st.session_state['login_status'] = "Yes"
-                st.session_state['user'] = user
-                st.session_state['username'] = username
-                st.session_state['choice_bar'] = 'Login'
-                choice_place.empty()
-                signup_place.empty()
-                st.success('Your account is created suceesfully!')
-                st.title('Welcome ' + st.session_state['username'])
-                st.balloons()
-            except:
-                st.write('Unable to signup user, please try anther email')
-                st.stop()
+# Login Block
+if (choice == 'Login') and (st.session_state['login_status'] == "No"):
+    email = login_container.text_input('Please enter your email address')
+    password = login_container.text_input('Please enter your password',type = 'password')
+    login = login_container.button('Login')
+    if login:
+        try:
+            user = auth.sign_in_with_email_and_password(email,password)
+            # user_info = auth.get_account_info()
+            username = db.child(user['localId']).child("Username").get().val()
+            st.session_state['login_status'] = "Yes"
+            st.session_state['user'] = user
+            st.session_state['username'] = username
+            choice_place.empty()
+            login_place.empty()
+        except:
+            st.write('User not found, please sign up with drop down selection')
+            st.stop()
+           
+        st.title('Welcome ' + st.session_state['username'])
+        st.balloons()
 
-    # Login Block
-    if (choice == 'Login'):
-        with login_container.form("login_form"):
-            email = st.text_input('Please enter your email address')
-            password = st.text_input('Please enter your password',type = 'password')
-            login = st.form_submit_button('Login')
-        if login:
-            try:
-                user = auth.sign_in_with_email_and_password(email,password)
-                # user_info = auth.get_account_info()
-                username = db.child(user['localId']).child("Username").get().val()
-                st.session_state['login_status'] = "Yes"
-                st.session_state['user'] = user
-                st.session_state['username'] = username
-                choice_place.empty()
-                login_place.empty()
-                st.title('Welcome ' + st.session_state['username'])
-                st.balloons()
-            except:
-                st.write('User not found, please sign up with drop down selection')
-                st.stop()
+# if st.session_state['login_status'] == 'Yes':
+#     username = st.session_state['username']
+#     st.sidebar.write('Welcome ' + username)
+#     logout = st.sidebar.button('Logout',on_click=clear_state,key = 'logout_continue')
+#     if logout:
+#         # login_place.empty()
+#         st.experimental_rerun()
         
 if st.session_state['login_status'] == 'Yes':
     # choice_place.empty()
@@ -166,7 +177,7 @@ if st.session_state['login_status'] == 'Yes':
     user = st.session_state['user']
     username = st.session_state['username']
     st.sidebar.write('Welcome ' + username)
-    logout = st.sidebar.button('Logout',on_click=clear_state)
+    logout = st.sidebar.button('Logout',on_click=clear_state,key = 'logout_continue')
     if logout:
         # login_place.empty()
         st.experimental_rerun()
