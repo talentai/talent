@@ -12,182 +12,331 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import base64
 import os
+import io
 
 import locale
+import requests
 
-import pyrebase
+import pyrebase as pb
 
-from PE_Functions import *
-from PE_Parameter import *
+# from PE_Functions import *
+# from PE_Parameter import *
 
 from pathlib import Path
 
 import xlsxwriter
 from io import BytesIO
 
-# from streamlit_option_menu import option_menu
+from datetime import datetime
 
-# Set Path
-st.set_page_config(layout="wide")
-# demo_path = Path(__file__).parents[0].__str__()+'/Data/Pay Equity Demo.xlsx'
-file_path = Path(__file__).parents[0].__str__()+'/Data/Pay Equity Data Template.xlsx'
-display_path = Path(__file__).parents[0].__str__()+'/Data/Display Name.xlsx'
-style_path = Path(__file__).parents[0].__str__()+'/Style/style.css'
-with open(style_path) as f:
-    st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
 
-# Set Styles
-# metric = st.markdown("""
-#     <style>
-#     div.css-12w0qpk.e1tzin5v2
-#          {background-color: #EFF8F7
-#          }
-#     div.css-1ht1j8u.e16fv1kl0
-#         {font-size: 15px; 
-#         }
-#     </style>""", unsafe_allow_html=True)
+# Firebase Authentication-----------------------------------------------------------------------------------------------------------------------
+firebaseConfig = {
+    'apiKey': "AIzaSyC6yIfxcoRtWmNUQZDER3ZZPgXf1ZbEcTw",
+    'authDomain': "talent-turnover.firebaseapp.com",
+    'projectId': "talent-turnover",
+    'storageBucket': "talent-turnover.appspot.com",
+    'messagingSenderId': "1008257138200",
+    'appId': "1:1008257138200:web:645e7b9138bcfb8659cd6d",
+    'measurementId': "G-X3MFWDFWTY",
+    'databaseURL': "https://talent-turnover-default-rtdb.firebaseio.com"  
+}
 
-# info_card = st.markdown("""
-#     <style>
-#     div.css-21e425.e1tzin5v4 {font-size: 5px}
-#     </style>""", unsafe_allow_html=True)
+fb = pb.initialize_app(firebaseConfig)
+auth = fb.auth()
+db = fb.database()
+storage = fb.storage()
 
-m = st.markdown("""
-    <style>
-    div.stButton > button:first-child {box-shadow: 0px 0px 0px 2px #3498DB;background-color:#3498DB;border-radius:5px;border:2px solid #3498DB;display:inline-block;cursor:pointer;color:#ffffff;font-family:Arial;font-size:13px;padding:8px 25px;text-decoration:none;
-    &:active {position:relative;top:1px;}}
-    </style>""", unsafe_allow_html=True)
+# Helper Functions -----------------------------------------------------------------------------------------------------------------------
+def get_excel_file_downloader_html(data, file_label='File'):
+    bin_str = base64.b64encode(data).decode()
+    href = f'<a href="data:file/xlsx;base64,{bin_str}" download="{file_label}">{file_label}</a>'
+    return href
 
-hide_menu_style = """
-        <style>
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        </style>
-        """
-st.markdown(hide_menu_style, unsafe_allow_html=True)
+def get_excel_file_downloader_url(data, file_label='File'):
+    bin_str = base64.b64encode(data).decode()
+    href = f'"data:file/xlsx;base64,{bin_str}"'
+    return href
 
-# Set Functions
+def clear_state():
+    for key in st.session_state.keys():
+        del st.session_state[key]
 
-# UI *********************************
-# Setup Session State:
-# if 'demo_run' not in st.session_state:
-#     st.session_state['demo_run'] = 'no'
-# Side Panel
+def clear_file(exclude_list):
+    for key in st.session_state.keys():
+        if key not in exclude_list:
+            del st.session_state[key]
 
+# Streamlit initialize session state to track login, upload status, data, and others ------------------------------------------------ 
+if 'login_status' not in st.session_state:
+    st.session_state['login_status'] = 'No'
 
-# m_col1,m_col2 = st.sidebar.columns((1, 1))
-# m_col1_but = m_col1.button('See Demo')
-# m_col2_but = m_col2.button('Close Demo')
+if 'data' not in st.session_state:
+    st.session_state['data'] = None
 
-# st.sidebar.markdown("""---""")
-
-# if "demo_box" not in st.session_state:
-#     st.session_state.demo_box = False
-
-st.sidebar.header(' 🎯 Start here')
-demo_check = st.sidebar.checkbox('See Demo', key='demo_box')
-
-# Step 1: Download Template
-# st.sidebar.markdown("Step 1: 🖱️ 'Save link as...'")
-# st.sidebar.markdown(get_binary_file_downloader_html(file_path, 'Download Instruction and Data Template'), unsafe_allow_html=True)
-
-# Step 2: Upload File
-if demo_check==False:
-    st.sidebar.markdown("Step 1: 🖱️ 'Save link as...'")
-    st.sidebar.markdown(get_binary_file_downloader_html(file_path, 'Download Instruction and Data Template'), unsafe_allow_html=True)
-    uploaded_file = st.sidebar.file_uploader('Step 2: Upload Data Template', type=['xlsx'])
-else:
-    st.sidebar.write('Please clear the "See Demo" checkbox to start your analysis.')
-    uploaded_file = None
-
-# Step 3: Check empty columns
-# st.sidebar.write('Step 3: Review the output in the main panel')
-# st.sidebar.write('Step 3: Confirm Selected Configuration')
-# config = st.sidebar.form("Configuration")
-# with config:
-#     # config.write("A. Choose fair pay confidence internal")
-#     ci = config.slider(label = 'A. Choose fair pay confidence internal %', min_value = 70, max_value = 99, step = 1, help='Setting at 95% means I want to have a pay range so that 95% of the time, the predicted pay falls inside.')
-#     # checkbox_val = st.checkbox("Form checkbox")
-#     # Every form must have a submit button.
-#     submitted_form = config.form_submit_button("🚀 Confirm to Run Analysis'")
-    
-
-# st.sidebar.write("Choose fair pay confidence internal at: "+str(ci))
-# st.sidebar.write('form submit' + str(submitted_form))
-# st.sidebar.write('file submit' + str(uploaded_file is not None))
-
-# submit_butt = False
-# if ((uploaded_file is not None) and (submitted_form == True)):
-#     submit_butt = True
-
-# submit_butt = False
-# if ((uploaded_file is not None)):
-#     submit_butt = st.sidebar.button("Submit")
-
-# st.sidebar.write('Step 3: Review the output in the main panel')
-# st.sidebar.write('If you wish to launch your data after the demonstration, please uncheck the "See Demo" box.')
-
-st.sidebar.markdown("""---""")
-
-# m_col1,m_col2 = st.sidebar.columns((1, 1))
-# m_col1_but = m_col1.button('See Demo')
-# m_col2_but = m_col2.button('Close Demo')
-    
-# st.sidebar.write('Final submit' + str(submit_butt))
-
-# option_menu
-
-# selected2 = option_menu(None, ["Home", "Upload", "Tasks", 'Settings'], 
-#     icons=['house', 'cloud-upload', "list-task", 'gear'], 
-#     menu_icon="cast", default_index=0, orientation="horizontal")
-
-# selected2 = option_menu(None, ["Settings", "Pay Gap Result", "Fair Pay Calculator"], 
-#     icons=['gear', 'cloud-upload', "list-task"], 
-#     menu_icon="cast", default_index=0, orientation="horizontal")
-
-
-# st.write(selected2)
-
-# Main Panel-------------------------------------------
-c1, c2 = st.columns((2, 1))
-
-c1.title('PayX')
-c1.write('PayX measure the value and the statistical significance of the **net gender/ethnicity pay gap**. That is, we compare pay between men and women, between white and black with similar level, function, location, experience and performance, etc to ensure the difference is gender/ethnicity based. Statistical significance allows us to quantify if a gap is due to chance or gender/ethnicity bias.')
-c2.image('Picture/salary.jpeg',use_column_width='auto')
-
-# st.markdown("""---""")
-
-# with st.expander("🔔 See Instruction"):
-#     st.write("""To start your analysis, please upload data in sidebar. Check out "See Demo" for a sample output.""")
-    # e1, e2 = st.columns((1,4))
-    # e1.image('Picture/guide2.jpeg',use_column_width='auto')
-    # e2.write("""To start your analysis, please upload data in sidebar. Check out "See Demo" for a sample output.""")
-    
-main_page = st.container()
-with main_page.container():
-    main_page_info = main_page.empty()
-    # st.write(submit_butt)
-    if uploaded_file is not None:
-        main_page_info.info('Running input file.')
-        # analysis(df_submit = uploaded_file, run_demo = False, file_path = file_path, display_path = display_path, main_page = main_page, main_page_info = main_page_info, ci = ci)
-        analysis(df_submit = uploaded_file, run_demo = False, file_path = file_path, display_path = display_path, main_page = main_page, main_page_info = main_page_info)
-        # st.session_state["demo_box"] = False
-    else:
-        m_info = main_page_info.info('Awaiting the upload of the data template.')
-        if demo_check:
-            analysis(df_submit = None, run_demo = True, file_path = file_path, display_path = display_path, main_page = main_page, main_page_info = main_page_info)
-        # else:
-        #     st.experimental_rerun()
+if 'upload_status' not in st.session_state:
+    st.session_state['upload_status'] = "No"
         
-#         m_col1,m_col2,t1 = main_page.columns((1, 1, 2))
+if 'username' not in st.session_state:
+    st.session_state['username'] = ""
+
+if 'email' not in st.session_state:
+    st.session_state['email'] = ""
+    
+if 'user' not in st.session_state:
+    st.session_state['user'] = None
+    
+if 'cal_result' not in st.session_state:
+    st.session_state['cal_result'] = np.nan
+
+# st.write(st.session_state)
+    
+# Streamlit Login UI -----------------------------------------------------------------------------------------------------------------------
+# Authentication
+choice_place = st.sidebar.empty()
+choice_container = choice_place.container()
+
+# Obtain User Input for email and password
+login_place = st.sidebar.empty()
+login_container = login_place.container()
+
+signup_place = st.sidebar.empty()
+signup_container = signup_place.container()
+
+# App
+# choice = 'Login'
+st.title('Attrition Analytics')
+st.write('We are building an analytics platform to better understand turnover risk')
+
+if st.session_state['login_status'] == 'No':
+    choice_container.title("Please login to start:")
+    choice = choice_container.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state)
+    # st.write(choice)
+    # Sign up Block
+    if (choice == 'Sign up'):
+        with signup_container.form("signup_form"):
+            email = st.text_input('Please enter your email address')
+            password = st.text_input('Please enter your password', type = 'password')    
+            username = st.text_input('Please input your user name', value='Default')
+            company = st.text_input('Please input your company name', value='Default')
+            signup = st.form_submit_button('Create my account')
+        if signup:
+            try:
+                user = auth.create_user_with_email_and_password(email, password)
+                db.child(user['localId']).child("ID").set(user['localId'])
+                db.child(user['localId']).child("Username").set(username)
+                db.child(user['localId']).child("Company").set(company)
+                db.child(user['localId']).child("Email").set(email)
+                db.child(user['localId']).child("Password").set(password)
+
+                st.session_state['login_status'] = "Yes"
+                st.session_state['user'] = user
+                st.session_state['username'] = username
+                st.session_state['email'] = email
+                st.session_state['choice_bar'] = 'Login'
+                choice_place.empty()
+                signup_place.empty()
+                st.success('Your account is created suceesfully!')
+                st.title('Welcome ' + st.session_state['username'])
+                st.balloons()
+            except:
+                st.write('Unable to signup user, please try anther email')
+                st.stop()
+
+    # Login Block
+    if (choice == 'Login'):
+        with login_container.form("login_form"):
+            email = st.text_input('Please enter your email address')
+            password = st.text_input('Please enter your password',type = 'password')
+            login = st.form_submit_button('Login')
+        if login:
+            # user = auth.sign_in_with_email_and_password(email,password)
+            # st.write(auth.get_account_info(user['idToken']))
+            try:
+                user = auth.sign_in_with_email_and_password(email,password)
+                username = db.child(user['localId']).child("Username").get().val()
+                # user_view = auth.get_account_info()
+                # st.write(user_view)
+                db.child(user['localId']).child("Password").set(password)
+                
+                st.session_state['login_status'] = "Yes"
+                st.session_state['user'] = user
+                st.session_state['username'] = username
+                st.session_state['email'] = email
+                
+                choice_place.empty()
+                login_place.empty()
+                st.title('Welcome ' + st.session_state['username'])
+                st.balloons()
+            except:
+                st.write('User not found, please sign up with drop down selection')
+                st.stop()
         
-#         m_col1_but = m_col1.button('See Demo')
-#         m_col2_but = m_col2.button('Close Demo')
-#         if m_col1_but:
-#             # analysis(df_submit = None, run_demo = True, file_path = file_path, display_path = display_path, main_page = main_page, main_page_info = main_page_info, ci = ci)
-#             analysis(df_submit = None, run_demo = True, file_path = file_path, display_path = display_path, main_page = main_page, main_page_info = main_page_info)
+if st.session_state['login_status'] == 'Yes':
+    # choice_place.empty()
+    # st.write(st.session_state)
+    user = st.session_state['user']
+    username = st.session_state['username']
+    email = st.session_state['email']
+
+    st.sidebar.write('Welcome ' + username)
+    login_c1, login_c2, login_c3 = st.sidebar.columns([1, 1, 1.5])
+    logout = login_c1.button('Logout',on_click=clear_state)
+    # reset_password = login_c2.button('Reset Password',on_click=clear_state)
+    reset_password = login_c2.button('Reset')
+    
+    if logout:
+        st.experimental_rerun()
+    
+    if reset_password:
+        auth.send_password_reset_email(email)
+        st.sidebar.success("Successful reset password")
+        clear_state()
+        st.experimental_rerun()
+    
+    bio = st.radio('Jump to',['Home','Calculation'])
+
+    if bio == 'Calculation':
+        with st.form("my_form"):
+            cal_start = st.number_input('Insert a number')
+            cal_add = st.number_input('Add a number')
+            cal_submit = st.form_submit_button("Submit")
+        if cal_submit:
+            cal_result = cal_start+cal_add
+            st.write('your final number is: '+str(cal_result))
+            st.session_state['cal_result'] = cal_result
+        
+        butt_save = st.button('Save result')
+        if butt_save:
+            cal_result = st.session_state['cal_result']
+            now = datetime.now()
+            dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
+            cal_save = {'Calculation' : cal_result,
+                    'Timestamp' : dt_string} 
+
+            db.child(user['localId']).child("Calculation").push(cal_save)
+            st.balloons()
+
+        # st.write(st.session_state)
+        
+    elif bio == 'Home':
+        st.write("You are home!")
+        exclude_list = ['login_status','user','username','data']
+        uploaded_file = st.file_uploader('Step 1: Upload Data Template', type=['xlsx'], on_change=clear_file,args=[exclude_list])
+        df = None
+        if uploaded_file is not None:
+            df = pd.read_excel(uploaded_file,sheet_name="Sheet1")
+            df['price_update'] = df['price']*100
+            st.session_state.data = df
+            st.session_state.upload_status = "Yes"
             
-#         if m_col2_but:
-#             # main_page.empty()
-#             st.experimental_rerun()
+            #result, model = analysis(df)
+            
+        elif st.session_state.upload_status=="Yes":
+            df = st.session_state.data
+            
+        if df is not None:
+            st.write(df['price'][0])
+            st.write(df['price_update'][0])
+        
+        df_name = st.text_input('Filename', '')
+        butt_save_data = st.button('Save data')
+        
+        if butt_save_data:
+            now = datetime.now()
+            dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
+            data_save = {'Filename':df_name,
+                    'File' : df.to_dict(),
+                    'Timestamp' : dt_string} 
+            db.child(user['localId']).child("Data").push(data_save)
+            
+            # output = BytesIO()
+            # writer = pd.ExcelWriter(output, engine='xlsxwriter')
+            # df.to_excel(writer, index=False, sheet_name='Sheet1')
+            # workbook = writer.book
+            # worksheet = writer.sheets['Sheet1']
+            # writer.save()
+            # processed_data = output.getvalue()
+            
+            # save_path = get_excel_file_downloader_url(processed_data, 'save_data.xlsx')
+            # save_path = 'Test/test.xlsx'
+            
+#             save_path = uploaded_file
+            
+#             # uid = user['localId']
+#             fireb_upload = storage.child(user['localId']).put(save_path,user['idToken'])
+#             data_url = storage.child(user['localId']).get_url(fireb_upload['downloadTokens']) 
+#             db.child(user['localId']).child("Data").child("Store_URL").push(data_url)
 
+#             st.write(save_path)
+            st.balloons()
+        
+        butt_load_data = st.button('Load data')
+        # butt_load_file = st.button('Load file')
+        
+        if butt_load_data:
+            data_all = db.child(user['localId']).child("Data").get().val()
+            if data_all is not None:
+                val = db.child(user['localId']).child("Data").get()
+                # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
+                # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
+                val_by_time = db.child(user['localId']).sort(val, "Timestamp")
+                myfile = val_by_time.each()[0].val()
+                st.write(len(val_by_time.each()))
+                st.write(myfile['Filename'])
+                st.write(myfile['Timestamp'])
+                st.write(pd.DataFrame.from_dict(myfile['File']))
+                download = pd.DataFrame.from_dict(myfile['File']).to_excel('download.xlsx')
+                
+                # for myfile in val_by_time.each():
+                #     myfile = myfile.val()
+                #     # if myfile['Filename'] == 'first':
+                #     #     download = pd.DataFrame.from_dict(myfile['File']).to_excel('download.xlsx')
+                #     st.write(myfile['Filename'])
+                #     st.write(myfile['Timestamp'])
+                #     st.write(pd.DataFrame.from_dict(myfile['File']))
+        
+#         if butt_load_file:
+#             file_all = db.child(user['localId']).child("Data").child("Store_URL").get().val()
+#             if file_all is not None:
+#                 val = db.child(user['localId']).child("Data").child("Store_URL").get()
+#                 mydata = val.each()[0]
+#                 # load_data = mydata.val()+'?raw=true'
+#                 load_data = mydata.val()
+#                 st.write(load_data)
+                
+#                 # get_content = requests.get(load_data).content
+#                 # read_data = pd.read_excel(io.StringIO(get_content.decode('utf-8')))
+#                 # read_data = pd.read_csv(get_content, encoding= 'unicode_escape')
+#                 read_data = pd.read_excel(load_data,engine='openpyxl')
+#                 # read_data = pd.read_excel(load_data)
+#                 st.write(read_data)
+                
+#                 # get_content = requests.get(load_data).content
+#                 # r = requests.get(load_data)
+#                 # open('temp.xls', 'wb').write(r.content)
+#                 # read_data = pd.read_excel('temp.xls').122294654120....................................8551545545514545666----------------------------------------------------------------------------
+
+
+
+
+                
+                # read_data = pd.read_excel(load_data,engine='openpyxl')
+                # read_data['price_update10'] = read_data['price'] * 10
+                
+                # st.write(read_data)
+#                 for mydata in val.each():
+#                     load_data = mydata.val()
+#                     read_data = pd.read_excel(load_data)
+                    
+#                     read_data['price_update2'] = read_data['price_update'] * 10
+                    # st.write(read_data.head(1))
+                    
+                    # if myfile['Filename'] == 'first':
+                    #     download = pd.DataFrame.from_dict(myfile['File']).to_excel('download.xlsx')
+                    # st.write(load_data)
+                    # st.write(read_data)
+                    # st.write(myfile['Timestamp'])
+        
+        # st.write(st.session_state)

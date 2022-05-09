@@ -1,1 +1,1 @@
-streamlit run auth.py
+streamlit run talent.py
