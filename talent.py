@@ -45,6 +45,8 @@ firebaseConfig = {
 
 st.write(st.secrets["firebase_secrets"]["databaseURL"])
 
+st.write(**st.secrets.firebase_secrets)
+
 fb = pb.initialize_app(firebaseConfig)
 auth = fb.auth()
 db = fb.database()
