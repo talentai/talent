@@ -43,9 +43,11 @@ firebaseConfig = {
     'databaseURL': "https://talent-turnover-default-rtdb.firebaseio.com"  
 }
 
-st.write(st.secrets["firebase_secrets"]["databaseURL"])
+# st.write(st.secrets["firebase_secrets"]["databaseURL"])
+config = **st.secrets.firebase_secrets
+st.write(config)
+print(config)
 
-st.write(**st.secrets.firebase_secrets)
 
 fb = pb.initialize_app(firebaseConfig)
 auth = fb.auth()
