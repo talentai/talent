@@ -117,7 +117,7 @@ if st.session_state['login_status'] == 'No':
     if (choice == 'Sign up'):
         with signup_container.form("signup_form"):
             email = st.text_input('Please enter your email address')
-            password = st.text_input('Please enter your password',type = 'password')    
+            password = st.text_input('Please enter your password', type = 'password')    
             username = st.text_input('Please input your user name', value='Default')
             company = st.text_input('Please input your company name', value='Default')
             signup = st.form_submit_button('Create my account')
@@ -230,6 +230,9 @@ if st.session_state['login_status'] == 'Yes':
             df['price_update'] = df['price']*100
             st.session_state.data = df
             st.session_state.upload_status = "Yes"
+            
+            #result, model = analysis(df)
+            
         elif st.session_state.upload_status=="Yes":
             df = st.session_state.data
             
@@ -313,7 +316,11 @@ if st.session_state['login_status'] == 'Yes':
 #                 # get_content = requests.get(load_data).content
 #                 # r = requests.get(load_data)
 #                 # open('temp.xls', 'wb').write(r.content)
-#                 # read_data = pd.read_excel('temp.xls')
+#                 # read_data = pd.read_excel('temp.xls').122294654120....................................8551545545514545666----------------------------------------------------------------------------
+
+
+
+
                 
                 # read_data = pd.read_excel(load_data,engine='openpyxl')
                 # read_data['price_update10'] = read_data['price'] * 10
