@@ -80,6 +80,9 @@ if 'upload_status' not in st.session_state:
         
 if 'username' not in st.session_state:
     st.session_state['username'] = ""
+
+if 'email' not in st.session_state:
+    st.session_state['email'] = ""
     
 if 'user' not in st.session_state:
     st.session_state['user'] = None
@@ -87,6 +90,8 @@ if 'user' not in st.session_state:
 if 'cal_result' not in st.session_state:
     st.session_state['cal_result'] = np.nan
 
+# st.write(st.session_state)
+    
 # Streamlit Login UI -----------------------------------------------------------------------------------------------------------------------
 # Authentication
 choice_place = st.sidebar.empty()
@@ -128,6 +133,7 @@ if st.session_state['login_status'] == 'No':
                 st.session_state['login_status'] = "Yes"
                 st.session_state['user'] = user
                 st.session_state['username'] = username
+                st.session_state['email'] = email
                 st.session_state['choice_bar'] = 'Login'
                 choice_place.empty()
                 signup_place.empty()
@@ -145,13 +151,20 @@ if st.session_state['login_status'] == 'No':
             password = st.text_input('Please enter your password',type = 'password')
             login = st.form_submit_button('Login')
         if login:
+            # user = auth.sign_in_with_email_and_password(email,password)
+            # st.write(auth.get_account_info(user['idToken']))
             try:
                 user = auth.sign_in_with_email_and_password(email,password)
-                # user_info = auth.get_account_info()
                 username = db.child(user['localId']).child("Username").get().val()
+                # user_view = auth.get_account_info()
+                # st.write(user_view)
+                db.child(user['localId']).child("Password").set(password)
+                
                 st.session_state['login_status'] = "Yes"
                 st.session_state['user'] = user
                 st.session_state['username'] = username
+                st.session_state['email'] = email
+                
                 choice_place.empty()
                 login_place.empty()
                 st.title('Welcome ' + st.session_state['username'])
@@ -165,12 +178,23 @@ if st.session_state['login_status'] == 'Yes':
     # st.write(st.session_state)
     user = st.session_state['user']
     username = st.session_state['username']
+    email = st.session_state['email']
+
     st.sidebar.write('Welcome ' + username)
-    logout = st.sidebar.button('Logout',on_click=clear_state)
+    login_c1, login_c2, login_c3 = st.sidebar.columns([1, 1, 1.5])
+    logout = login_c1.button('Logout',on_click=clear_state)
+    # reset_password = login_c2.button('Reset Password',on_click=clear_state)
+    reset_password = login_c2.button('Reset')
+    
     if logout:
-        # login_place.empty()
         st.experimental_rerun()
-        
+    
+    if reset_password:
+        auth.send_password_reset_email(email)
+        st.sidebar.success("Successful reset password")
+        clear_state()
+        st.experimental_rerun()
+    
     bio = st.radio('Jump to',['Home','Calculation'])
 
     if bio == 'Calculation':
