@@ -48,7 +48,6 @@ config = **st.secrets.firebase_secrets
 st.write(config)
 print(config)
 
-
 fb = pb.initialize_app(firebaseConfig)
 auth = fb.auth()
 db = fb.database()
