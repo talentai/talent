@@ -18,7 +18,6 @@ import locale
 import requests
 
 import pyrebase as pb
-from streamlit_option_menu import option_menu
 
 # from PE_Functions import *
 # from PE_Parameter import *
@@ -30,22 +29,7 @@ from io import BytesIO
 
 from datetime import datetime
 
-# Streamlit CSS Style Setup
-st.set_page_config(layout="wide")
 st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
-m = st.markdown("""
-    <style>
-    div.stButton > button:first-child {box-shadow: 0px 0px 0px 2px #3498DB;background-color:#3498DB;border-radius:5px;border:2px solid #3498DB;display:inline-block;cursor:pointer;color:#ffffff;font-family:Arial;font-size:13px;padding:8px 25px;text-decoration:none;
-    &:active {position:relative;top:1px;}}
-    </style>""", unsafe_allow_html=True)
-
-hide_menu_style = """
-        <style>
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        </style>
-        """
-st.markdown(hide_menu_style, unsafe_allow_html=True)
 
 # Firebase Authentication-----------------------------------------------------------------------------------------------------------------------
 firebaseConfig = {
@@ -58,8 +42,6 @@ firebaseConfig = {
     'measurementId': "G-X3MFWDFWTY",
     'databaseURL': "https://talent-turnover-default-rtdb.firebaseio.com"  
 }
-
-# st.write(st.secrets["firebase_secrets"]["databaseURL"])
 
 fb = pb.initialize_app(firebaseConfig)
 auth = fb.auth()
@@ -110,21 +92,23 @@ if 'cal_result' not in st.session_state:
 
 # st.write(st.session_state)
     
-# Streamlit -----------------------------------------------------------------------------------------------------------------------
-
-# Authentication -----------------------------------------------------------------------------------------------------------------------
-choice_place = st.empty()
+# Streamlit Login UI -----------------------------------------------------------------------------------------------------------------------
+# Authentication
+choice_place = st.sidebar.empty()
 choice_container = choice_place.container()
 
 # Obtain User Input for email and password
-login_place = st.empty()
+login_place = st.sidebar.empty()
 login_container = login_place.container()
 
-signup_place = st.empty()
+signup_place = st.sidebar.empty()
 signup_container = signup_place.container()
 
 # App
 # choice = 'Login'
+st.title('Attrition Analytics')
+st.write('We are building an analytics platform to better understand turnover risk')
+
 if st.session_state['login_status'] == 'No':
     choice_container.title("Please login to start:")
     choice = choice_container.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state)
@@ -151,15 +135,14 @@ if st.session_state['login_status'] == 'No':
                 st.session_state['username'] = username
                 st.session_state['email'] = email
                 st.session_state['choice_bar'] = 'Login'
-                # choice_place.empty()
-                # signup_place.empty()
-                signup_container.success('Your account is created suceesfully!')
-                signup_container.title('Welcome ' + st.session_state['username'])
+                choice_place.empty()
+                signup_place.empty()
+                st.success('Your account is created suceesfully!')
+                st.title('Welcome ' + st.session_state['username'])
                 st.balloons()
-                st.experimental_rerun()
             except:
-                signup_container.write('Unable to signup user, please try anther email')
-                st.experimental_rerun()
+                st.write('Unable to signup user, please try anther email')
+                st.stop()
 
     # Login Block
     if (choice == 'Login'):
@@ -182,19 +165,14 @@ if st.session_state['login_status'] == 'No':
                 st.session_state['username'] = username
                 st.session_state['email'] = email
                 
-                # choice_place.empty()
-                # login_place.empty()
-                login_container.title('Welcome ' + st.session_state['username'])
+                choice_place.empty()
+                login_place.empty()
+                st.title('Welcome ' + st.session_state['username'])
                 st.balloons()
-                st.experimental_rerun()
             except:
-                login_container.write('User not found, please sign up with drop down selection')
-                st.write(st.session_state)
+                st.write('User not found, please sign up with drop down selection')
                 st.stop()
         
-# End of Authentication -----------------------------------------------------------------------------------------------------
-
-# Begin of Mainpage after login ---------------------------------------------------------------------------------------------------
 if st.session_state['login_status'] == 'Yes':
     # choice_place.empty()
     # st.write(st.session_state)
@@ -202,30 +180,24 @@ if st.session_state['login_status'] == 'Yes':
     username = st.session_state['username']
     email = st.session_state['email']
 
-# Start Navigation menu ---------------------------------------------------------------------------------------------------
-    # bio = st.radio('Jump to',['Home','Calculation'])
-    # st.sidebar.markdown("""---""")
-    menu_holder = st.sidebar.empty()
-    menu = menu_holder.container()
+    st.sidebar.write('Welcome ' + username)
+    login_c1, login_c2, login_c3 = st.sidebar.columns([1, 1, 1.5])
+    logout = login_c1.button('Logout',on_click=clear_state)
+    # reset_password = login_c2.button('Reset Password',on_click=clear_state)
+    reset_password = login_c2.button('Reset')
     
-    with menu:
-        select = option_menu(None, ["Home", "Calculation", "Prediction", 'Settings','Log Out','Reset Password'], 
-        icons=['house', 'cloud-upload', "list-task", 'gear','gear','gear'], 
-        menu_icon="cast", default_index=0, orientation="vertical")  
- 
-    if select == 'Log Out':
+    if logout:
+        st.experimental_rerun()
+    
+    if reset_password:
+        auth.send_password_reset_email(email)
+        st.sidebar.success("Successful reset password")
         clear_state()
         st.experimental_rerun()
-        
-    if select == 'Reset Password':
-        auth.send_password_reset_email(email)
-        st.success("Successful reset password")
-        clear_state()
-        st.experimental_rerun()     
     
-    if select == 'Calculation':
-        st.title('Attrition Analytics')
-        st.write('We are building an analytics platform to better understand turnover risk')
+    bio = st.radio('Jump to',['Home','Calculation'])
+
+    if bio == 'Calculation':
         with st.form("my_form"):
             cal_start = st.number_input('Insert a number')
             cal_add = st.number_input('Add a number')
@@ -248,7 +220,7 @@ if st.session_state['login_status'] == 'Yes':
 
         # st.write(st.session_state)
         
-    elif select == 'Home':
+    elif bio == 'Home':
         st.write("You are home!")
         exclude_list = ['login_status','user','username','data']
         uploaded_file = st.file_uploader('Step 1: Upload Data Template', type=['xlsx'], on_change=clear_file,args=[exclude_list])
