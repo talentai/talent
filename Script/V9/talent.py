@@ -113,14 +113,14 @@ if 'cal_result' not in st.session_state:
 # Streamlit -----------------------------------------------------------------------------------------------------------------------
 
 # Authentication -----------------------------------------------------------------------------------------------------------------------
-choice_place = st.empty()
+choice_place = st.sidebar.empty()
 choice_container = choice_place.container()
 
 # Obtain User Input for email and password
-login_place = st.empty()
+login_place = st.sidebar.empty()
 login_container = login_place.container()
 
-signup_place = st.empty()
+signup_place = st.sidebar.empty()
 signup_container = signup_place.container()
 
 # App
@@ -153,13 +153,13 @@ if st.session_state['login_status'] == 'No':
                 st.session_state['choice_bar'] = 'Login'
                 # choice_place.empty()
                 # signup_place.empty()
-                signup_container.success('Your account is created suceesfully!')
-                signup_container.title('Welcome ' + st.session_state['username'])
+                st.success('Your account is created suceesfully!')
+                st.title('Welcome ' + st.session_state['username'])
                 st.balloons()
                 st.experimental_rerun()
             except:
-                signup_container.write('Unable to signup user, please try anther email')
-                st.experimental_rerun()
+                st.write('Unable to signup user, please try anther email')
+                st.stop()
 
     # Login Block
     if (choice == 'Login'):
@@ -184,15 +184,14 @@ if st.session_state['login_status'] == 'No':
                 
                 # choice_place.empty()
                 # login_place.empty()
-                login_container.title('Welcome ' + st.session_state['username'])
+                st.title('Welcome ' + st.session_state['username'])
                 st.balloons()
                 st.experimental_rerun()
             except:
-                login_container.write('User not found, please sign up with drop down selection')
-                st.write(st.session_state)
+                st.write('User not found, please sign up with drop down selection')
                 st.stop()
         
-# End of Authentication -----------------------------------------------------------------------------------------------------
+# End of Authentication -----------------------------------------------------------------------------------------------------------------------------
 
 # Begin of Mainpage after login ---------------------------------------------------------------------------------------------------
 if st.session_state['login_status'] == 'Yes':
@@ -202,26 +201,32 @@ if st.session_state['login_status'] == 'Yes':
     username = st.session_state['username']
     email = st.session_state['email']
 
+    # st.sidebar.write('Welcome ' + username)
+    login_c1, login_c2, login_c3 = st.columns([1, 1, 1])
+    # login_c1, login_c2, login_c3 = st.sidebar.columns([1, 1, 1])
+    logout = login_c1.button('Logout',on_click=clear_state)
+    # reset_password = login_c2.button('Reset Password',on_click=clear_state)
+    reset_password = login_c2.button('Reset')
+    
+    if logout:
+        st.experimental_rerun()
+    
+    if reset_password:
+        auth.send_password_reset_email(email)
+        st.sidebar.success("Successful reset password")
+        clear_state()
+        st.experimental_rerun()
+
 # Start Navigation menu ---------------------------------------------------------------------------------------------------
     # bio = st.radio('Jump to',['Home','Calculation'])
-    # st.sidebar.markdown("""---""")
+    st.sidebar.markdown("""---""")
     menu_holder = st.sidebar.empty()
     menu = menu_holder.container()
     
     with menu:
-        select = option_menu(None, ["Home", "Calculation", "Prediction", 'Settings','Log Out','Reset Password'], 
-        icons=['house', 'cloud-upload', "list-task", 'gear','gear','gear'], 
+        select = option_menu(None, ["Home", "Calculation", "Prediction", 'Settings'], 
+        icons=['house', 'cloud-upload', "list-task", 'gear'], 
         menu_icon="cast", default_index=0, orientation="vertical")  
- 
-    if select == 'Log Out':
-        clear_state()
-        st.experimental_rerun()
-        
-    if select == 'Reset Password':
-        auth.send_password_reset_email(email)
-        st.success("Successful reset password")
-        clear_state()
-        st.experimental_rerun()     
     
     if select == 'Calculation':
         st.title('Attrition Analytics')
