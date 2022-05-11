@@ -17,3 +17,4 @@ streamlit-echarts
 hydralit_components
 pyrebase4
 plost
+streamlit_option_menu
