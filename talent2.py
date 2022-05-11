@@ -113,8 +113,8 @@ if 'cal_result' not in st.session_state:
 # Streamlit -----------------------------------------------------------------------------------------------------------------------
 
 # Authentication -----------------------------------------------------------------------------------------------------------------------
-choice_place = st.empty()
-choice_container = choice_place.container()
+# choice_place = st.empty()
+# choice_container = choice_place.container()
 
 # Obtain User Input for email and password
 login_place = st.empty()
@@ -123,19 +123,34 @@ login_container = login_place.container()
 signup_place = st.empty()
 signup_container = signup_place.container()
 
+# signin_place = st.empty()
+# choice_container = signin_place.container()
+
+# # Obtain User Input for email and password
+# # login_place = st.empty()
+# login_container = signin_place.container()
+
+# # signup_place = st.empty()
+# signup_container = signin_place.container()
+
 # App
 # choice = 'Login'
 if st.session_state['login_status'] == 'No':
-    choice_container.title("Please login to start:")
-    choice = choice_container.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state)
+    # choice_container.title("Please login to start:")
+    # choice = choice_container.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state)
+    login_container.title("Welcome to Talent Analytics")
+    login_col1, login_col2, login_col3 = login_container.columns([1,1,0.3])
+    login_col1.image('Image/login3.jpg',use_column_width='auto')
+    choice = login_col2.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state)    
+    
     # st.write(choice)
     # Sign up Block
     if (choice == 'Sign up'):
-        with signup_container.form("signup_form"):
+        with login_col2.form("signup_form"):
             email = st.text_input('Please enter your email address')
             password = st.text_input('Please enter your password', type = 'password')    
-            username = st.text_input('Please input your user name', value='Default')
-            company = st.text_input('Please input your company name', value='Default')
+            username = st.text_input('Please input your user name', value='')
+            company = st.text_input('Please input your company name', value='')
             signup = st.form_submit_button('Create my account')
         if signup:
             try:
@@ -153,17 +168,17 @@ if st.session_state['login_status'] == 'No':
                 # st.session_state['choice_bar'] = 'Login'
                 # choice_place.empty()
                 # signup_place.empty()
-                signup_container.success('Your account is created suceesfully!')
-                signup_container.title('Welcome ' + st.session_state['username'])
-                st.balloons()
-                st.experimental_rerun()
+                # signup_container.success('Your account is created suceesfully!')
+                # signup_container.title('Welcome ' + st.session_state['username'])
+                # st.balloons()
+                # st.experimental_rerun()
             except:
-                signup_container.write('Unable to signup user, please try anther email')
+                login_col2.write('Unable to signup user, please try anther email')
                 st.experimental_rerun()
 
     # Login Block
     if (choice == 'Login'):
-        with login_container.form("login_form"):
+        with login_col2.form("login_form"):
             email = st.text_input('Please enter your email address')
             password = st.text_input('Please enter your password',type = 'password')
             login = st.form_submit_button('Login')
@@ -201,6 +216,7 @@ if st.session_state['login_status'] == 'No':
                 st.session_state['user'] = user
                 st.session_state['username'] = username
                 st.session_state['email'] = email                
+                # signin_place.empty()
                 choice_place.empty()
                 login_place.empty()
                 signup_place.empty()
