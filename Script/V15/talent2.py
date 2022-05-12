@@ -153,10 +153,10 @@ if st.session_state['login_status'] == 'No':
     # Sign up Block
     if (choice == 'Sign up'):
         with login_col2.form("signup_form"):
-            email = st.text_input('Email')
-            password = st.text_input('Password', type = 'password')    
-            username = st.text_input('User name', value='')
-            company = st.text_input('Company name', value='')
+            email = st.text_input('Please enter your email address')
+            password = st.text_input('Please enter your password', type = 'password')    
+            username = st.text_input('Please input your user name', value='')
+            company = st.text_input('Please input your company name', value='')
             signup = st.form_submit_button('Create account')
         if signup:
             try:

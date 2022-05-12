@@ -152,11 +152,11 @@ if st.session_state['login_status'] == 'No':
     # st.write(choice)
     # Sign up Block
     if (choice == 'Sign up'):
-        with signup_container.form("signup_form"):
-            email = st.text_input('Please enter your email address')
-            password = st.text_input('Please enter your password', type = 'password')    
-            username = st.text_input('Please input your user name', value='')
-            company = st.text_input('Please input your company name', value='')
+        with login_col2.form("signup_form"):
+            email = st.text_input('Email')
+            password = st.text_input('Password', type = 'password')    
+            username = st.text_input('User name', value='')
+            company = st.text_input('Company name', value='')
             signup = st.form_submit_button('Create account')
         if signup:
             try:
@@ -174,12 +174,12 @@ if st.session_state['login_status'] == 'No':
                 # st.session_state['choice_bar'] = 'Login'
                 # choice_place.empty()
                 # signup_place.empty()
-                signup_container.success('Your account is created suceesfully!')
-                signup_container.title('Welcome ' + st.session_state['username'])
-                st.balloons()
+                # login_container.success('Your account is created suceesfully!')
+                # login_container.title('Welcome ' + st.session_state['username'])
+                # st.balloons()
                 st.experimental_rerun()
             except:
-                signup_container.write('Unable to signup user, please try anther email')
+                login_container.write('Unable to signup user, please try anther email')
                 st.experimental_rerun()
 
     # Login Block

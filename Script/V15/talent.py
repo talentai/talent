@@ -18,7 +18,6 @@ import locale
 import requests
 
 import pyrebase as pb
-from streamlit_option_menu import option_menu
 
 # from PE_Functions import *
 # from PE_Parameter import *
@@ -30,22 +29,7 @@ from io import BytesIO
 
 from datetime import datetime
 
-# Streamlit CSS Style Setup
-st.set_page_config(layout="wide")
 st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
-m = st.markdown("""
-    <style>
-    div.stButton > button:first-child {box-shadow: 0px 0px 0px 2px #3498DB;background-color:#3498DB;border-radius:5px;border:2px solid #3498DB;display:inline-block;cursor:pointer;color:#ffffff;font-family:Arial;font-size:13px;padding:8px 25px;text-decoration:none;
-    &:active {position:relative;top:1px;}}
-    </style>""", unsafe_allow_html=True)
-
-hide_menu_style = """
-        <style>
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        </style>
-        """
-st.markdown(hide_menu_style, unsafe_allow_html=True)
 
 # Firebase Authentication-----------------------------------------------------------------------------------------------------------------------
 firebaseConfig = {
@@ -58,8 +42,6 @@ firebaseConfig = {
     'measurementId': "G-X3MFWDFWTY",
     'databaseURL': "https://talent-turnover-default-rtdb.firebaseio.com"  
 }
-
-# st.write(st.secrets["firebase_secrets"]["databaseURL"])
 
 fb = pb.initialize_app(firebaseConfig)
 auth = fb.auth()
@@ -87,12 +69,6 @@ def clear_file(exclude_list):
             del st.session_state[key]
 
 # Streamlit initialize session state to track login, upload status, data, and others ------------------------------------------------ 
-if 'login_time' not in st.session_state:
-    st.session_state['login_time'] = 0
-    
-if 'run_time' not in st.session_state:
-    st.session_state['run_time'] = 0
-
 if 'login_status' not in st.session_state:
     st.session_state['login_status'] = 'No'
 
@@ -116,48 +92,35 @@ if 'cal_result' not in st.session_state:
 
 # st.write(st.session_state)
     
-# Streamlit -----------------------------------------------------------------------------------------------------------------------
-
-# Authentication -----------------------------------------------------------------------------------------------------------------------
-# choice_place = st.empty()
-# choice_container = choice_place.container()
+# Streamlit Login UI -----------------------------------------------------------------------------------------------------------------------
+# Authentication
+choice_place = st.sidebar.empty()
+choice_container = choice_place.container()
 
 # Obtain User Input for email and password
-login_place = st.empty()
+login_place = st.sidebar.empty()
 login_container = login_place.container()
 
-signup_place = st.empty()
+signup_place = st.sidebar.empty()
 signup_container = signup_place.container()
-
-# st.write("Run again")
-# st.session_state['run_time'] = st.session_state['run_time']+1
-# st.write("run time "+str(st.session_state['run_time']))
-# st.write("Outside Login time "+str(st.session_state['login_time']))
-# st.write(st.session_state)
-# st.write(st.session_state['login_status'])
 
 # App
 # choice = 'Login'
+st.title('Attrition Analytics')
+st.write('We are building an analytics platform to better understand turnover risk')
 
 if st.session_state['login_status'] == 'No':
-    # st.write("enter login now")
-    # choice_container.title("Please login to start:")
-    # choice = choice_container.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state)
-    
-    login_container.title("Welcome to Talent Analytics")
-    login_col1, login_col2, login_col3 = login_container.columns([1,1,0.3])
-    login_col1.image('Image/login3.jpg',use_column_width='auto')
-    choice = login_col2.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state) 
-    
+    choice_container.title("Please login to start:")
+    choice = choice_container.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state)
     # st.write(choice)
     # Sign up Block
     if (choice == 'Sign up'):
-        with login_col2.form("signup_form"):
-            email = st.text_input('Email')
-            password = st.text_input('Password', type = 'password')    
-            username = st.text_input('User name', value='')
-            company = st.text_input('Company name', value='')
-            signup = st.form_submit_button('Create account')
+        with signup_container.form("signup_form"):
+            email = st.text_input('Please enter your email address')
+            password = st.text_input('Please enter your password', type = 'password')    
+            username = st.text_input('Please input your user name', value='Default')
+            company = st.text_input('Please input your company name', value='Default')
+            signup = st.form_submit_button('Create my account')
         if signup:
             try:
                 user = auth.create_user_with_email_and_password(email, password)
@@ -171,59 +134,45 @@ if st.session_state['login_status'] == 'No':
                 st.session_state['user'] = user
                 st.session_state['username'] = username
                 st.session_state['email'] = email
-                # st.session_state['choice_bar'] = 'Login'
-                # choice_place.empty()
-                # signup_place.empty()
-                # login_container.success('Your account is created suceesfully!')
-                # login_container.title('Welcome ' + st.session_state['username'])
-                # st.balloons()
-                st.experimental_rerun()
+                st.session_state['choice_bar'] = 'Login'
+                choice_place.empty()
+                signup_place.empty()
+                st.success('Your account is created suceesfully!')
+                st.title('Welcome ' + st.session_state['username'])
+                st.balloons()
             except:
-                login_container.write('Unable to signup user, please try anther email')
-                st.experimental_rerun()
+                st.write('Unable to signup user, please try anther email')
+                st.stop()
 
     # Login Block
     if (choice == 'Login'):
-        with login_col2.form("login_form"):
+        with login_container.form("login_form"):
             email = st.text_input('Please enter your email address')
             password = st.text_input('Please enter your password',type = 'password')
-            login_form = st.form_submit_button('Login')
-        if login_form:                
+            login = st.form_submit_button('Login')
+        if login:
+            # user = auth.sign_in_with_email_and_password(email,password)
+            # st.write(auth.get_account_info(user['idToken']))
             try:
                 user = auth.sign_in_with_email_and_password(email,password)
-                # print('login success now 1')
                 username = db.child(user['localId']).child("Username").get().val()
                 # user_view = auth.get_account_info()
                 # st.write(user_view)
                 db.child(user['localId']).child("Password").set(password)
-                # print('login success now 2')
                 
                 st.session_state['login_status'] = "Yes"
                 st.session_state['user'] = user
                 st.session_state['username'] = username
                 st.session_state['email'] = email
-                # print('login success now 3')
                 
-                # choice_place.empty()
+                choice_place.empty()
                 login_place.empty()
-                # login_container.title('Welcome ' + st.session_state['username'])
-                # st.balloons()
-                st.session_state['login_time'] = st.session_state['login_time']+1
-                st.write("Inside Login time "+str(st.session_state['login_time']))
-                # st.write(st.session_state)
-                # st.stop()
-                # st.experimental_rerun()
+                st.title('Welcome ' + st.session_state['username'])
+                st.balloons()
             except:
-                # st.write('I am in except status')
-                st.write('User not found, please try again. If you are a new user, please create an account.')
-                st.session_state['login_time'] = st.session_state['login_time']+1
-                # st.write(st.session_state)
-                # st.write(st.session_state)
-                # st.stop()
+                st.write('User not found, please sign up with drop down selection')
+                st.stop()
         
-# End of Authentication -----------------------------------------------------------------------------------------------------
-
-# Begin of Mainpage after login ---------------------------------------------------------------------------------------------------
 if st.session_state['login_status'] == 'Yes':
     # choice_place.empty()
     # st.write(st.session_state)
@@ -231,33 +180,24 @@ if st.session_state['login_status'] == 'Yes':
     username = st.session_state['username']
     email = st.session_state['email']
 
-# Start Navigation menu ---------------------------------------------------------------------------------------------------
-    # bio = st.radio('Jump to',['Home','Calculation'])
-    # st.sidebar.markdown("""---""")
-    menu_holder = st.sidebar.empty()
-    menu = menu_holder.container()
+    st.sidebar.write('Welcome ' + username)
+    login_c1, login_c2, login_c3 = st.sidebar.columns([1, 1, 1.5])
+    logout = login_c1.button('Logout',on_click=clear_state)
+    # reset_password = login_c2.button('Reset Password',on_click=clear_state)
+    reset_password = login_c2.button('Reset')
     
-    with menu:
-        select = option_menu(None, ["Home", "Calculation", "Prediction", 'Settings','Log Out','Reset Password'], 
-        icons=['house', 'cloud-upload', "list-task", 'gear','gear','gear'], 
-        menu_icon="cast", default_index=0, orientation="vertical")  
-     
-    # st.write("enter menu")
-    # st.write(st.session_state)
+    if logout:
+        st.experimental_rerun()
     
-    if select == 'Log Out':
+    if reset_password:
+        auth.send_password_reset_email(email)
+        st.sidebar.success("Successful reset password")
         clear_state()
         st.experimental_rerun()
-        
-    if select == 'Reset Password':
-        auth.send_password_reset_email(email)
-        st.success("Successful reset password")
-        clear_state()
-        st.experimental_rerun()     
     
-    if select == 'Calculation':
-        st.title('Attrition Analytics')
-        st.write('We are building an analytics platform to better understand turnover risk')
+    bio = st.radio('Jump to',['Home','Calculation'])
+
+    if bio == 'Calculation':
         with st.form("my_form"):
             cal_start = st.number_input('Insert a number')
             cal_add = st.number_input('Add a number')
@@ -280,7 +220,7 @@ if st.session_state['login_status'] == 'Yes':
 
         # st.write(st.session_state)
         
-    elif select == 'Home':
+    elif bio == 'Home':
         st.write("You are home!")
         exclude_list = ['login_status','user','username','data']
         uploaded_file = st.file_uploader('Step 1: Upload Data Template', type=['xlsx'], on_change=clear_file,args=[exclude_list])
