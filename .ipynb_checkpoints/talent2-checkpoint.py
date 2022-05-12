@@ -145,7 +145,7 @@ if st.session_state['login_status'] == 'No':
     # choice = choice_container.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state)
     
     login_container.title("Welcome to Talent Analytics")
-    login_col1, login_col2, login_col3 = login_container.columns([1,1,0.3])
+    login_col1, login_col2, login_col3 = login_container.columns([1,1,0.2])
     login_col1.image('Image/login3.jpg',use_column_width='auto')
     choice = login_col2.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state) 
     
@@ -187,7 +187,7 @@ if st.session_state['login_status'] == 'No':
         with login_col2.form("login_form"):
             email = st.text_input('Please enter your email address')
             password = st.text_input('Please enter your password',type = 'password')
-            login_form = st.form_submit_button('Login')
+            login_form = st.form_submit_button('Login account')
         if login_form:                
             try:
                 user = auth.sign_in_with_email_and_password(email,password)
