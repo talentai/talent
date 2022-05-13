@@ -129,21 +129,14 @@ login_container = login_place.container()
 signup_place = st.empty()
 signup_container = signup_place.container()
 
-# st.write("Run again")
-# st.session_state['run_time'] = st.session_state['run_time']+1
-# st.write("run time "+str(st.session_state['run_time']))
-# st.write("Outside Login time "+str(st.session_state['login_time']))
-# st.write(st.session_state)
-# st.write(st.session_state['login_status'])
-
 # App
 # choice = 'Login'
 
 if st.session_state['login_status'] == 'No':
-    st.write("enter login now")
+    # st.write("enter login now")
     choice_container.title("Please login to start:")
     choice = choice_container.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state)
-    # st.write(choice)
+
     # Sign up Block
     if (choice == 'Sign up'):
         with signup_container.form("signup_form"):
@@ -165,25 +158,20 @@ if st.session_state['login_status'] == 'No':
                 st.session_state['user'] = user
                 st.session_state['username'] = username
                 st.session_state['email'] = email
-                # st.session_state['choice_bar'] = 'Login'
+                
                 choice_place.empty()
                 signup_place.empty()
-                # signup_container.success('Your account is created suceesfully!')
-                # signup_container.title('Welcome ' + st.session_state['username'])
-                # st.balloons()
                 # st.experimental_rerun()
             except:
                 signup_container.write('Unable to signup user, please try anther email')
-                st.experimental_rerun()
 
     # Login Block
     if (choice == 'Login'):
         with login_container.form("login_form"):
             email = st.text_input('Please enter your email address')
             password = st.text_input('Please enter your password',type = 'password')
-            login_form = st.form_submit_button('Login_frontend')
+            login_form = st.form_submit_button('Login')
         if login_form:
-                
             try:
                 user = auth.sign_in_with_email_and_password(email,password)
                 # print('login success now 1')
@@ -209,9 +197,8 @@ if st.session_state['login_status'] == 'No':
                 # st.stop()
                 # st.experimental_rerun()
             except:
-                # st.write('I am in except status')
                 st.write('User not found, please try again. If you are a new user, please create an account.')
-                # st.session_state['login_time'] = st.session_state['login_time']+1
+                st.session_state['login_time'] = st.session_state['login_time']+1
                 # st.write(st.session_state)
                 # st.write(st.session_state)
                 # st.stop()
@@ -233,12 +220,9 @@ if st.session_state['login_status'] == 'Yes':
     menu = menu_holder.container()
     
     with menu:
-        select = option_menu(None, ["Home", "Calculation", "Prediction", 'Settings','Log Out','Reset Password'], 
+        select = option_menu(None, ["Home", "Insight", "Prediction", 'Settings','Log Out','Reset Password'], 
         icons=['house', 'cloud-upload', "list-task", 'gear','gear','gear'], 
         menu_icon="cast", default_index=0, orientation="vertical")  
-     
-    # st.write("enter menu")
-    # st.write(st.session_state)
     
     if select == 'Log Out':
         clear_state()
@@ -250,7 +234,7 @@ if st.session_state['login_status'] == 'Yes':
         clear_state()
         st.experimental_rerun()     
     
-    if select == 'Calculation':
+    if select == 'Insight':
         st.title('Attrition Analytics')
         st.write('We are building an analytics platform to better understand turnover risk')
         with st.form("my_form"):
