@@ -129,12 +129,12 @@ login_container = login_place.container()
 signup_place = st.empty()
 signup_container = signup_place.container()
 
-st.write("Run again")
-st.session_state['run_time'] = st.session_state['run_time']+1
-st.write("run time "+str(st.session_state['run_time']))
-st.write("Outside Login time "+str(st.session_state['login_time']))
-st.write(st.session_state)
-st.write(st.session_state['login_status'])
+# st.write("Run again")
+# st.session_state['run_time'] = st.session_state['run_time']+1
+# st.write("run time "+str(st.session_state['run_time']))
+# st.write("Outside Login time "+str(st.session_state['login_time']))
+# st.write(st.session_state)
+# st.write(st.session_state['login_status'])
 
 # App
 # choice = 'Login'
@@ -258,8 +258,8 @@ if st.session_state['login_status'] == 'Yes':
         icons=['house', 'cloud-upload', "list-task", 'gear','gear','gear'], 
         menu_icon="cast", default_index=0, orientation="vertical")  
      
-    st.write("enter menu")
-    st.write(st.session_state)
+    # st.write("enter menu")
+    # st.write(st.session_state)
     
     if select == 'Log Out':
         clear_state()
