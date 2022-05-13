@@ -47,7 +47,10 @@ hide_menu_style = """
         """
 st.markdown(hide_menu_style, unsafe_allow_html=True)
 
-# Firebase Authentication-----------------------------------------------------------------------------------------------------------------------
+# Setup Filepath for user submission data template
+file_path = Path(__file__).parents[0].__str__()+'/Data/Data Template.xlsx'
+
+# Firebase Authentication----------------------------------------------------------------------------------------------------------------------
 firebaseConfig = {
     'apiKey': "AIzaSyC6yIfxcoRtWmNUQZDER3ZZPgXf1ZbEcTw",
     'authDomain': "talent-turnover.firebaseapp.com",
@@ -67,6 +70,17 @@ db = fb.database()
 storage = fb.storage()
 
 # Helper Functions -----------------------------------------------------------------------------------------------------------------------
+# Download Excel Template
+@st.experimental_memo(show_spinner=False)
+def get_binary_file_downloader_html(bin_file, file_label='File'):
+    with open(bin_file, 'rb') as f:
+        data = f.read()
+    bin_str = base64.b64encode(data).decode()
+    # href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{bin_file}">{file_label}</a>'
+    href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{os.path.basename(bin_file)}">{file_label}</a>'
+    return href
+
+# Download Excel Files
 def get_excel_file_downloader_html(data, file_label='File'):
     bin_str = base64.b64encode(data).decode()
     href = f'<a href="data:file/xlsx;base64,{bin_str}" download="{file_label}">{file_label}</a>'
@@ -116,8 +130,6 @@ if 'cal_result' not in st.session_state:
     
 if 'menu_message' not in st.session_state:
     st.session_state['menu_message'] = None
-
-# st.write(st.session_state)
     
 # Streamlit -----------------------------------------------------------------------------------------------------------------------
 
@@ -129,12 +141,8 @@ if 'menu_message' not in st.session_state:
 login_place = st.empty()
 login_container = login_place.container()
 
-# signup_place = st.empty()
-# signup_container = signup_place.container()
-
 # App
 # choice = 'Login'
-
 if st.session_state['login_status'] == 'No':
     # st.write("enter login now")
     if st.session_state['menu_message'] is not None:
@@ -211,46 +219,33 @@ if st.session_state['login_status'] == 'Yes':
         select = option_menu("Welcome "+username, ["Setup", "Insight", "Prediction", 'Log Out','Reset Password'], 
         icons=['house', 'bar-chart-line', "list-task", 'gear','arrow-clockwise'], 
         menu_icon="person", default_index=0, orientation="vertical")  
-    
-    if select == 'Log Out':
-        clear_state()
-        st.experimental_rerun()
         
-    if select == 'Reset Password':
-        auth.send_password_reset_email(email)
-        st.session_state['menu_message'] = "A password reset message was sent. Click the link in the email to create a new password."
-        clear_state_withexc('menu_message')
-        st.experimental_rerun()     
-    
-    if select == 'Insight':
-        st.title('Attrition Analytics')
-        st.write('We are building an analytics platform to better understand turnover risk')
-        with st.form("my_form"):
-            cal_start = st.number_input('Insert a number')
-            cal_add = st.number_input('Add a number')
-            cal_submit = st.form_submit_button("Submit")
-        if cal_submit:
-            cal_result = cal_start+cal_add
-            st.write('your final number is: '+str(cal_result))
-            st.session_state['cal_result'] = cal_result
+    if select == 'Setup':
+        setup_place = st.empty()
+        setup_container = setup_place.container()
         
-        butt_save = st.button('Save result')
-        if butt_save:
-            cal_result = st.session_state['cal_result']
-            now = datetime.now()
-            dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
-            cal_save = {'Calculation' : cal_result,
-                    'Timestamp' : dt_string} 
-
-            db.child(user['localId']).child("Calculation").push(cal_save)
-            st.balloons()
-
-        # st.write(st.session_state)
+        setup_col1, setup_col2 = setup_container.columns((2, 1))
+        setup_col1.title('TalentX')
+        setup_col1.write('TalentX is an AI-driven platform to analyzing employee turnover to identify why people leave and boost retention. By analying termination data during 12 month period, TalentX can identify root cause of turnover, answer what if questions, and predict individual turnover risk for next 12 month.')
+        setup_col2.image('Image/setup1.jpg',use_column_width='auto')
         
-    elif select == 'Setup':
-        st.write("You are home!")
+        # Start setup
+        setup_container.markdown("""---""")
+        # setup_container.markdown("🎯 Let's Get Started")
+        
+        # Step 1: Download instruction and template
+        step1_col1, step1_col2, step1_col3 = setup_container.columns((1, 1, 3))
+        step1_col1.markdown("Step 1: 🖱️ 'Save link as...'")
+        step1_col2.markdown(get_binary_file_downloader_html(file_path, 'Instruction and Template'), unsafe_allow_html=True)
+        
+        # Step 2: Submit data
         exclude_list = ['login_status','user','username','data']
-        uploaded_file = st.file_uploader('Step 1: Upload Data Template', type=['xlsx'], on_change=clear_state_withexc,args=[exclude_list])
+        uploaded_file = setup_container.file_uploader('Step 2: Upload Data Template', type=['xlsx'], on_change=clear_state_withexc,args=[exclude_list])
+        
+        # Step 3: Data Validation
+        
+        
+        
         df = None
         if uploaded_file is not None:
             df = pd.read_excel(uploaded_file,sheet_name="Sheet1")
@@ -264,11 +259,17 @@ if st.session_state['login_status'] == 'Yes':
             df = st.session_state.data
             
         if df is not None:
-            st.write(df['price'][0])
-            st.write(df['price_update'][0])
+            setup_container.write(df['price'][0])
+            setup_container.write(df['price_update'][0])
         
-        df_name = st.text_input('Filename', '')
-        butt_save_data = st.button('Save data')
+        df_name = setup_container.text_input('Filename', '')
+        
+#         butt_next_step = setup_container.button('My Insight')
+#         if butt_next_step:
+            
+            
+        
+        butt_save_data = setup_container.button('Save data')
         
         if butt_save_data:
             now = datetime.now()
@@ -299,7 +300,7 @@ if st.session_state['login_status'] == 'Yes':
 #             st.write(save_path)
             st.balloons()
         
-        butt_load_data = st.button('Load data')
+        butt_load_data = setup_container.button('Load data')
         # butt_load_file = st.button('Load file')
         
         if butt_load_data:
@@ -310,10 +311,10 @@ if st.session_state['login_status'] == 'Yes':
                 # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
                 val_by_time = db.child(user['localId']).sort(val, "Timestamp")
                 myfile = val_by_time.each()[0].val()
-                st.write(len(val_by_time.each()))
-                st.write(myfile['Filename'])
-                st.write(myfile['Timestamp'])
-                st.write(pd.DataFrame.from_dict(myfile['File']))
+                setup_container.write(len(val_by_time.each()))
+                setup_container.write(myfile['Filename'])
+                setup_container.write(myfile['Timestamp'])
+                setup_container.write(pd.DataFrame.from_dict(myfile['File']))
                 download = pd.DataFrame.from_dict(myfile['File']).to_excel('download.xlsx')
                 
                 # for myfile in val_by_time.each():
@@ -344,10 +345,38 @@ if st.session_state['login_status'] == 'Yes':
 #                 # r = requests.get(load_data)
 #                 # open('temp.xls', 'wb').write(r.content)
 #                 # read_data = pd.read_excel('temp.xls').122294654120....................................8551545545514545666----------------------------------------------------------------------------
+    elif select == 'Insight':
+        # st.title('Attrition Analytics')
+        # st.write('We are building an analytics platform to better understand turnover risk')
+        with st.form("my_form"):
+            cal_start = st.number_input('Insert a number')
+            cal_add = st.number_input('Add a number')
+            cal_submit = st.form_submit_button("Submit")
+        if cal_submit:
+            cal_result = cal_start+cal_add
+            st.write('your final number is: '+str(cal_result))
+            st.session_state['cal_result'] = cal_result
+        
+        butt_save = st.button('Save result')
+        if butt_save:
+            cal_result = st.session_state['cal_result']
+            now = datetime.now()
+            dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
+            cal_save = {'Calculation' : cal_result,
+                    'Timestamp' : dt_string} 
 
+            db.child(user['localId']).child("Calculation").push(cal_save)
+            st.balloons()
 
-
-
+    elif select == 'Log Out':
+        clear_state()
+        st.experimental_rerun()
+        
+    elif select == 'Reset Password':
+        auth.send_password_reset_email(email)
+        st.session_state['menu_message'] = "A password reset message was sent. Click the link in the email to create a new password."
+        clear_state_withexc('menu_message')
+        st.experimental_rerun()  
                 
                 # read_data = pd.read_excel(load_data,engine='openpyxl')
                 # read_data['price_update10'] = read_data['price'] * 10
