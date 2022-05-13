@@ -158,12 +158,6 @@ if st.session_state['login_status'] == 'No':
                 st.session_state['user'] = user
                 st.session_state['username'] = username
                 st.session_state['email'] = email
-                # st.session_state['choice_bar'] = 'Login'
-                # choice_place.empty()
-                # signup_place.empty()
-                # signup_container.success('Your account is created suceesfully!')
-                # signup_container.title('Welcome ' + st.session_state['username'])
-                # st.balloons()
                 st.experimental_rerun()
             except:
                 signup_container.write('Unable to signup user, please try anther email')
@@ -195,15 +189,15 @@ if st.session_state['login_status'] == 'No':
                 login_place.empty()
                 # login_container.title('Welcome ' + st.session_state['username'])
                 # st.balloons()
-                st.session_state['login_time'] = st.session_state['login_time']+1
-                st.write("Inside Login time "+str(st.session_state['login_time']))
-                st.write(st.session_state)
+                # st.session_state['login_time'] = st.session_state['login_time']+1
+                # st.write("Inside Login time "+str(st.session_state['login_time']))
+                # st.write(st.session_state)
                 # st.stop()
                 # st.experimental_rerun()
             except:
-                st.write('I am in except status')
+                # st.write('I am in except status')
                 st.write('User not found, please try again. If you are a new user, please create an account.')
-                st.session_state['login_time'] = st.session_state['login_time']+1
+                # st.session_state['login_time'] = st.session_state['login_time']+1
                 # st.write(st.session_state)
                 # st.write(st.session_state)
                 # st.stop()
