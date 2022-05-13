@@ -119,27 +119,29 @@ if 'cal_result' not in st.session_state:
 # Streamlit -----------------------------------------------------------------------------------------------------------------------
 
 # Authentication -----------------------------------------------------------------------------------------------------------------------
-choice_place = st.empty()
-choice_container = choice_place.container()
+# choice_place = st.empty()
+# choice_container = choice_place.container()
 
 # Obtain User Input for email and password
 login_place = st.empty()
 login_container = login_place.container()
 
-signup_place = st.empty()
-signup_container = signup_place.container()
+# signup_place = st.empty()
+# signup_container = signup_place.container()
 
 # App
 # choice = 'Login'
 
 if st.session_state['login_status'] == 'No':
-    st.write("enter login now")
-    choice_container.title("Please login to start:")
-    choice = choice_container.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state)
+    # st.write("enter login now")
+    login_container.title("Welcome to Talent Analytics")
+    login_col1, login_col2, login_col3 = login_container.columns([1,1,0.2])
+    login_col1.image('Image/login3.jpg',use_column_width='auto')
+    choice = login_col2.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state) 
     # st.write(choice)
     # Sign up Block
     if (choice == 'Sign up'):
-        with signup_container.form("signup_form"):
+        with login_col2.form("signup_form"):
             email = st.text_input('Please enter your email address')
             password = st.text_input('Please enter your password', type = 'password')    
             username = st.text_input('Please input your user name', value='')
@@ -160,15 +162,15 @@ if st.session_state['login_status'] == 'No':
                 st.session_state['email'] = email
                 st.experimental_rerun()
             except:
-                signup_container.write('Unable to signup user, please try anther email')
+                st.write('Unable to signup user, please try anther email')
                 st.experimental_rerun()
 
     # Login Block
     if (choice == 'Login'):
-        with login_container.form("login_form"):
+        with login_col2.form("login_form"):
             email = st.text_input('Please enter your email address')
             password = st.text_input('Please enter your password',type = 'password')
-            login_form = st.form_submit_button('Login_frontend')
+            login_form = st.form_submit_button('Login Account')
         if login_form:                
             try:
                 user = auth.sign_in_with_email_and_password(email,password)
@@ -185,7 +187,7 @@ if st.session_state['login_status'] == 'No':
                 st.session_state['email'] = email
                 # print('login success now 3')
                 
-                choice_place.empty()
+                # choice_place.empty()
                 login_place.empty()
                 # login_container.title('Welcome ' + st.session_state['username'])
                 # st.balloons()
