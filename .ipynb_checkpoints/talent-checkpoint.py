@@ -81,7 +81,7 @@ def clear_state():
     for key in st.session_state.keys():
         del st.session_state[key]
 
-def clear_file(exclude_list):
+def clear_state_withexc(exclude_list):
     for key in st.session_state.keys():
         if key not in exclude_list:
             del st.session_state[key]
@@ -113,6 +113,9 @@ if 'user' not in st.session_state:
     
 if 'cal_result' not in st.session_state:
     st.session_state['cal_result'] = np.nan
+    
+if 'menu_message' not in st.session_state:
+    st.session_state['menu_message'] = None
 
 # st.write(st.session_state)
     
@@ -134,6 +137,8 @@ login_container = login_place.container()
 
 if st.session_state['login_status'] == 'No':
     # st.write("enter login now")
+    if st.session_state['menu_message'] is not None:
+        login_container.info(st.session_state['menu_message'])
     login_container.title("Welcome to Talent Analytics")
     login_col1, login_col2, login_col3 = login_container.columns([1,1,0.2])
     login_col1.image('Image/login3.jpg',use_column_width='auto')
@@ -206,9 +211,6 @@ if st.session_state['login_status'] == 'Yes':
         select = option_menu("Welcome "+username, ["Setup", "Insight", "Prediction", 'Log Out','Reset Password'], 
         icons=['house', 'bar-chart-line', "list-task", 'gear','arrow-clockwise'], 
         menu_icon="person", default_index=0, orientation="vertical")  
-     
-    # st.write("enter menu")
-    # st.write(st.session_state)
     
     if select == 'Log Out':
         clear_state()
@@ -216,8 +218,8 @@ if st.session_state['login_status'] == 'Yes':
         
     if select == 'Reset Password':
         auth.send_password_reset_email(email)
-        st.success("Successful reset password")
-        clear_state()
+        st.session_state['menu_message'] = "A password reset message was sent. Click the link in the email to create a new password."
+        clear_state_withexc('menu_message')
         st.experimental_rerun()     
     
     if select == 'Insight':
@@ -245,10 +247,10 @@ if st.session_state['login_status'] == 'Yes':
 
         # st.write(st.session_state)
         
-    elif select == 'Home':
+    elif select == 'Setup':
         st.write("You are home!")
         exclude_list = ['login_status','user','username','data']
-        uploaded_file = st.file_uploader('Step 1: Upload Data Template', type=['xlsx'], on_change=clear_file,args=[exclude_list])
+        uploaded_file = st.file_uploader('Step 1: Upload Data Template', type=['xlsx'], on_change=clear_state_withexc,args=[exclude_list])
         df = None
         if uploaded_file is not None:
             df = pd.read_excel(uploaded_file,sheet_name="Sheet1")
