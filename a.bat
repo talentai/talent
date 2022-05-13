@@ -1,1 +1,1 @@
-streamlit run talent2.py
+streamlit run talent.py
