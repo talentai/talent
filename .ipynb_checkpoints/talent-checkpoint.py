@@ -185,45 +185,27 @@ if st.session_state['login_status'] == 'No':
                 st.session_state['user'] = user
                 st.session_state['username'] = username
                 st.session_state['email'] = email
-                # print('login success now 3')
-                
-                # choice_place.empty()
                 login_place.empty()
-                # login_container.title('Welcome ' + st.session_state['username'])
-                # st.balloons()
-                # st.session_state['login_time'] = st.session_state['login_time']+1
-                # st.write("Inside Login time "+str(st.session_state['login_time']))
-                # st.write(st.session_state)
-                # st.stop()
-                # st.experimental_rerun()
+
             except:
-                # st.write('I am in except status')
                 st.write('User not found, please try again. If you are a new user, please create an account.')
-                # st.session_state['login_time'] = st.session_state['login_time']+1
-                # st.write(st.session_state)
-                # st.write(st.session_state)
-                # st.stop()
         
 # End of Authentication -----------------------------------------------------------------------------------------------------
 
 # Begin of Mainpage after login ---------------------------------------------------------------------------------------------------
 if st.session_state['login_status'] == 'Yes':
-    # choice_place.empty()
-    # st.write(st.session_state)
     user = st.session_state['user']
     username = st.session_state['username']
     email = st.session_state['email']
 
 # Start Navigation menu ---------------------------------------------------------------------------------------------------
-    # bio = st.radio('Jump to',['Home','Calculation'])
-    # st.sidebar.markdown("""---""")
     menu_holder = st.sidebar.empty()
     menu = menu_holder.container()
     
     with menu:
-        select = option_menu(None, ["Home", "Insight", "Prediction", 'Settings','Log Out','Reset Password'], 
-        icons=['house', 'cloud-upload', "list-task", 'gear','gear','gear'], 
-        menu_icon="cast", default_index=0, orientation="vertical")  
+        select = option_menu("Welcome "+username, ["Setup", "Insight", "Prediction", 'Log Out','Reset Password'], 
+        icons=['house', 'bar-chart-line', "list-task", 'gear','arrow-clockwise'], 
+        menu_icon="person", default_index=0, orientation="vertical")  
      
     # st.write("enter menu")
     # st.write(st.session_state)
