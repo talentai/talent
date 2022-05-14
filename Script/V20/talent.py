@@ -13,7 +13,6 @@ import seaborn as sns
 import base64
 import os
 import io
-import operator
 
 import locale
 import requests
@@ -33,8 +32,6 @@ from datetime import datetime
 
 # Streamlit CSS Style Setup
 st.set_page_config(layout="wide")
-
-# Streamlit - format buttons
 st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
 m = st.markdown("""
     <style>
@@ -42,7 +39,6 @@ m = st.markdown("""
     &:active {position:relative;top:1px;}}
     </style>""", unsafe_allow_html=True)
 
-# Streamlit - hide top menu
 hide_menu_style = """
         <style>
         #MainMenu {visibility: hidden;}
@@ -50,20 +46,6 @@ hide_menu_style = """
         </style>
         """
 st.markdown(hide_menu_style, unsafe_allow_html=True)
-
-# Streamlit - Set sidebar size
-st.markdown(
-     """
-     <style>
-     [data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
-         width: 270px;
-       }
-    [data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
-           width: 270px;
-           margin-left: -270px;
-       }
-    </style>
-    """,unsafe_allow_html=True)
 
 # Setup Filepath for user submission data template
 file_path = Path(__file__).parents[0].__str__()+'/Data/Data Template.xlsx'
@@ -100,14 +82,7 @@ def get_binary_file_downloader_html(bin_file, file_label='File'):
 
 # Download Excel Files
 def get_excel_file_downloader_html(data, file_label='File'):
-    output = BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    data.to_excel(writer, index=False, sheet_name='Sheet1')
-    workbook = writer.book
-    worksheet = writer.sheets['Sheet1']
-    writer.save()
-    processed_data = output.getvalue()
-    bin_str = base64.b64encode(processed_data).decode()
+    bin_str = base64.b64encode(data).decode()
     href = f'<a href="data:file/xlsx;base64,{bin_str}" download="{file_label}">{file_label}</a>'
     return href
 
@@ -241,14 +216,10 @@ if st.session_state['login_status'] == 'Yes':
     menu = menu_holder.container()
     
     with menu:
-        select = option_menu(username, ["Setup", "Insight", "Prediction", 'Log Out','Reset Password'], 
+        select = option_menu("Welcome "+username, ["Setup", "Insight", "Prediction", 'Log Out','Reset Password'], 
         icons=['house', 'bar-chart-line', "list-task", 'gear','arrow-clockwise'], 
-        menu_icon="person", default_index=0, orientation="vertical",
-        styles={
-        "container": {"padding": "0!important"},
-        "icon": {"font-size": "20px"},
-        "nav-link-selected": {"background-color": "#3498DB"}})  
-
+        menu_icon="person", default_index=0, orientation="vertical")  
+        
     if select == 'Setup':
         setup_place = st.empty()
         setup_container = setup_place.container()
@@ -263,18 +234,13 @@ if st.session_state['login_status'] == 'Yes':
         # setup_container.markdown("🎯 Let's Get Started")
         
         # Step 1: Download instruction and template
-        step1_col1, step1_col2, step2_col1, step2_col2, _ = setup_container.columns((1, 1.5, 1 , 2,0.5))
-        step1_col1.image('Image/step1.jpg',use_column_width='auto')
-        step1_col2.markdown("🖱️ 'Save link as...'")
+        step1_col1, step1_col2, step1_col3 = setup_container.columns((1, 1, 3))
+        step1_col1.markdown("Step 1: 🖱️ 'Save link as...'")
         step1_col2.markdown(get_binary_file_downloader_html(file_path, 'Instruction and Template'), unsafe_allow_html=True)
-        # setup_container.markdown("""---""")
         
         # Step 2: Submit data
-        # exclude_list = ['login_status','user','username','email','menu_message','data']
-        # step2_col1, step2_col2 = setup_container.columns((1, 5))
-        exclude_list = ['login_status','user','username','email','menu_message']
-        step2_col1.image('Image/step2.jpg',use_column_width='auto')
-        uploaded_file = step2_col2.file_uploader('', type=['xlsx'], on_change=clear_state_withexc,args=[exclude_list])
+        exclude_list = ['login_status','user','username','email','menu_message','data']
+        uploaded_file = setup_container.file_uploader('Step 2: Upload Data Template', type=['xlsx'], on_change=clear_state_withexc,args=[exclude_list])
         df = None
         if (uploaded_file is not None) and (st.session_state['upload_status'] == "No"):
             df = pd.read_excel(uploaded_file,sheet_name="Submission", skiprows=0,header=1)
@@ -283,30 +249,11 @@ if st.session_state['login_status'] == 'Yes':
             st.session_state['upload_status'] = "Yes"
         elif st.session_state['upload_status'] == "Yes":
             df = st.session_state['data']
-        setup_container.markdown("""---""")
         
         # Step 3: Data Validation
         if df is not None:
-            step3_col1, step3_col2 = setup_container.columns((1, 5))
-            # Yang - function validation(df)
-            # Call a function to pass df and return with a output dictionary
-            output = {'validation':{'Submitted Entry':500, 'Processed Entry':490, 'Imputed Entry':3 ,'Invalid Entry':7, 'Invalid Data': df.head(10), 'Processed Data': df.head(493)}}
-            
-            # step3_col2.write('Step 3: Validate Data')
-            step3_col1, validation_col1,validation_col2,validation_col3,validation_col4, validation_col5 = setup_container.columns((1, 1, 1, 1, 1, 1))
-            step3_col1.image('Image/step3.jpg',use_column_width='auto')
-            validation_col1.metric('Submitted Entry',output['validation']['Submitted Entry'])
-            validation_col2.metric('Processed Entry',output['validation']['Processed Entry'])
-            validation_col3.metric('Imputed Entry',output['validation']['Imputed Entry'])
-            validation_col4.metric('Invalid Entry',output['validation']['Invalid Entry'])
-            df_validation = output['validation']['Invalid Data']
-            if operator.not_(df_validation.empty):
-                validation_col5.markdown(get_excel_file_downloader_html(df_validation, 'Invalid Entry.xlsx'), unsafe_allow_html=True)
-                validation_col5.markdown("🖱️ 'Save link as...'")
-            
-            
-        
-        
+            setup_container.write(df['Job Level'][0])
+            setup_container.write(df['Tenure'][0])
         
         df_name = setup_container.text_input('Filename', '')
         
@@ -314,7 +261,6 @@ if st.session_state['login_status'] == 'Yes':
         
         if butt_save_data:
             # setup_container.write(df.to_dict())
-            st.write(df.head(1))
             now = datetime.now()
             dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
             data_save = {'Filename':df_name,

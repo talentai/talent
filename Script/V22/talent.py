@@ -263,15 +263,15 @@ if st.session_state['login_status'] == 'Yes':
         # setup_container.markdown("🎯 Let's Get Started")
         
         # Step 1: Download instruction and template
-        step1_col1, step1_col2, step2_col1, step2_col2, _ = setup_container.columns((1, 1.5, 1 , 2,0.5))
+        step1_col1, step1_col2 = setup_container.columns((1, 5))
         step1_col1.image('Image/step1.jpg',use_column_width='auto')
         step1_col2.markdown("🖱️ 'Save link as...'")
         step1_col2.markdown(get_binary_file_downloader_html(file_path, 'Instruction and Template'), unsafe_allow_html=True)
-        # setup_container.markdown("""---""")
+        setup_container.markdown("""---""")
         
         # Step 2: Submit data
         # exclude_list = ['login_status','user','username','email','menu_message','data']
-        # step2_col1, step2_col2 = setup_container.columns((1, 5))
+        step2_col1, step2_col2 = setup_container.columns((1, 5))
         exclude_list = ['login_status','user','username','email','menu_message']
         step2_col1.image('Image/step2.jpg',use_column_width='auto')
         uploaded_file = step2_col2.file_uploader('', type=['xlsx'], on_change=clear_state_withexc,args=[exclude_list])

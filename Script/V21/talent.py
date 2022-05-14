@@ -263,18 +263,14 @@ if st.session_state['login_status'] == 'Yes':
         # setup_container.markdown("🎯 Let's Get Started")
         
         # Step 1: Download instruction and template
-        step1_col1, step1_col2, step2_col1, step2_col2, _ = setup_container.columns((1, 1.5, 1 , 2,0.5))
-        step1_col1.image('Image/step1.jpg',use_column_width='auto')
-        step1_col2.markdown("🖱️ 'Save link as...'")
+        step1_col1, step1_col2, step1_col3 = setup_container.columns((1, 1, 3))
+        step1_col1.markdown("Step 1: 🖱️ 'Save link as...'")
         step1_col2.markdown(get_binary_file_downloader_html(file_path, 'Instruction and Template'), unsafe_allow_html=True)
-        # setup_container.markdown("""---""")
         
         # Step 2: Submit data
         # exclude_list = ['login_status','user','username','email','menu_message','data']
-        # step2_col1, step2_col2 = setup_container.columns((1, 5))
         exclude_list = ['login_status','user','username','email','menu_message']
-        step2_col1.image('Image/step2.jpg',use_column_width='auto')
-        uploaded_file = step2_col2.file_uploader('', type=['xlsx'], on_change=clear_state_withexc,args=[exclude_list])
+        uploaded_file = setup_container.file_uploader('Step 2: Upload Data Template', type=['xlsx'], on_change=clear_state_withexc,args=[exclude_list])
         df = None
         if (uploaded_file is not None) and (st.session_state['upload_status'] == "No"):
             df = pd.read_excel(uploaded_file,sheet_name="Submission", skiprows=0,header=1)
@@ -283,18 +279,15 @@ if st.session_state['login_status'] == 'Yes':
             st.session_state['upload_status'] = "Yes"
         elif st.session_state['upload_status'] == "Yes":
             df = st.session_state['data']
-        setup_container.markdown("""---""")
         
         # Step 3: Data Validation
         if df is not None:
-            step3_col1, step3_col2 = setup_container.columns((1, 5))
             # Yang - function validation(df)
             # Call a function to pass df and return with a output dictionary
             output = {'validation':{'Submitted Entry':500, 'Processed Entry':490, 'Imputed Entry':3 ,'Invalid Entry':7, 'Invalid Data': df.head(10), 'Processed Data': df.head(493)}}
             
-            # step3_col2.write('Step 3: Validate Data')
-            step3_col1, validation_col1,validation_col2,validation_col3,validation_col4, validation_col5 = setup_container.columns((1, 1, 1, 1, 1, 1))
-            step3_col1.image('Image/step3.jpg',use_column_width='auto')
+            setup_container.write('Step 3: Validate Data')
+            validation_col1,validation_col2,validation_col3,validation_col4, validation_col5 = setup_container.columns((1, 1, 1, 1, 1))
             validation_col1.metric('Submitted Entry',output['validation']['Submitted Entry'])
             validation_col2.metric('Processed Entry',output['validation']['Processed Entry'])
             validation_col3.metric('Imputed Entry',output['validation']['Imputed Entry'])
