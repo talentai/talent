@@ -14,7 +14,6 @@ import base64
 import os
 import io
 import operator
-import copy
 
 import locale
 import requests
@@ -302,7 +301,7 @@ if st.session_state['login_status'] == 'Yes':
             # Call a function to pass df and return with a output dictionary
             output = {'validation':{'Submitted Entry':1470, 'Processed Entry':1400, 'Imputed Entry':10 ,'Invalid Entry':60, 
                       'Invalid Data': df.tail(60), 'Processed Data': df.head(1410),
-                      'All Valid Columns':df.columns.tolist(), 'All Valid Columns':df.columns.tolist()          
+                      'All Valid Columns':df.columns.tolist()             
                      }}
             df_clean = output['validation']['Processed Data']
             # End of Yang
@@ -331,49 +330,33 @@ if st.session_state['login_status'] == 'Yes':
                 st.session_state['choose_fullrun_index'] = 1
             else:
                 st.session_state['choose_fullrun_index'] = 0
-
-    # Step 4a: Start - Run a segment of population - Allow user to choose up to 3 filters (relationship is A and B and C)
-    # If user select yes, use the entire dataset
-            df_final = copy.deepcopy(df_clean)
+            
+            df_final = deepcopy.copy(df_clean)
+            
             if st.session_state['choose_fullrun'] == 'No':
+    # Step 4a: Run a segment of population - Allow user to choose up to 3 filters                  
                 step4a_col1, step4a_col2, step4a_col3 = setup_container.columns((1, 1, 1))    
                 
             #1st cut
                 feature_1 = step4a_col1.selectbox('1st Cut',output['validation']['All Valid Columns'])
                 cut_1 = step4a_col1.multiselect(feature_1,set(df_final[feature_1]),key='choose_cut1')
-                # setup_container.write(cut_1)
+                setup_container.write(cut_1)
                 df_final = df_final[df_final[feature_1].isin(cut_1)]
             #2nd cut
                 if len(cut_1)>0:
-                    cut_1_message = feature_1+' includes '+', '.join(cut_1)
-                    # setup_container.info('Run a subset where '+cut_1_message)
                     # df_temp_1.to_excel('temp1.xlsx')
                     feature_2 = step4a_col2.selectbox('2nd Cut',output['validation']['All Valid Columns'])
-                    # setup_container.write(set(df_final[feature_2]))
-                    cut_2 = step4a_col2.multiselect(feature_2,set(df_final[feature_2]),key='choose_cut2')
-                    df_final = df_final[df_final[feature_2].isin(cut_2)]
+                    setup_container.write(set(df_final[feature_2]))
+                    cut_2 = step4a_col2.multiselect(feature_2,set(df_temp_1[feature_2]),key='choose_cut2')
             #3rd cut    
                     if len(cut_2)>0:
-                        cut_2_message = feature_2+' includes '+', '.join(cut_2)
-                        # setup_container.info('Run a subset where '+cut_1_message+' and '+cut_2_message)
-                        
                         df_temp_2 = df_clean[df_clean[feature_2].isin(cut_2)]
                         # df_temp_1.to_excel('temp1.xlsx')
                         feature_3 = step4a_col3.selectbox('3rd Cut',output['validation']['All Valid Columns'])
-                        # setup_container.write(set(df_temp_2[feature_3]))
+                        setup_container.write(set(df_temp_2[feature_3]))
                         cut_3 = step4a_col3.multiselect(feature_3,set(df_temp_2[feature_3]),key='choose_cut3')
-                        df_final = df_final[df_final[feature_3].isin(cut_3)]
-                        
-                        if len(cut_3)>0:
-                            cut_3_message = feature_3+' includes '+', '.join(cut_3)
-                            # setup_container.info('Run a subset where '+cut_1_message+' and '+cut_2_message +' and '+cut_3_message)
-    # Step 4a. End - output a user selected defined dataset
-            setup_container.markdown("""---""")
-            # if len(cut_1)>0:
-            # df_final.to_excel('final_data.xlsx')
-    
-    
-            
+                
+                
                 
                 
                 # with step4_col3.form("user selection"):
@@ -391,57 +374,57 @@ if st.session_state['login_status'] == 'Yes':
                 
         
         
-#         df_name = setup_container.text_input('Filename', '')
+        df_name = setup_container.text_input('Filename', '')
         
-#         butt_save_data = setup_container.button('Save data')
+        butt_save_data = setup_container.button('Save data')
         
-#         if butt_save_data:
-#             # setup_container.write(df.to_dict())
-#             st.write(df.head(1))
-#             now = datetime.now()
-#             dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
-#             data_save = {'Filename':df_name,
-#                     'File' : df.to_dict(),
-#                     'Timestamp' : dt_string} 
-#             db.child(user['localId']).child("Data").push(data_save)
+        if butt_save_data:
+            # setup_container.write(df.to_dict())
+            st.write(df.head(1))
+            now = datetime.now()
+            dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
+            data_save = {'Filename':df_name,
+                    'File' : df.to_dict(),
+                    'Timestamp' : dt_string} 
+            db.child(user['localId']).child("Data").push(data_save)
             
-#             # output = BytesIO()
-#             # writer = pd.ExcelWriter(output, engine='xlsxwriter')
-#             # df.to_excel(writer, index=False, sheet_name='Sheet1')
-#             # workbook = writer.book
-#             # worksheet = writer.sheets['Sheet1']
-#             # writer.save()
-#             # processed_data = output.getvalue()
+            # output = BytesIO()
+            # writer = pd.ExcelWriter(output, engine='xlsxwriter')
+            # df.to_excel(writer, index=False, sheet_name='Sheet1')
+            # workbook = writer.book
+            # worksheet = writer.sheets['Sheet1']
+            # writer.save()
+            # processed_data = output.getvalue()
             
-#             # save_path = get_excel_file_downloader_url(processed_data, 'save_data.xlsx')
-#             # save_path = 'Test/test.xlsx'
+            # save_path = get_excel_file_downloader_url(processed_data, 'save_data.xlsx')
+            # save_path = 'Test/test.xlsx'
             
-# #             save_path = uploaded_file
+#             save_path = uploaded_file
             
-# #             # uid = user['localId']
-# #             fireb_upload = storage.child(user['localId']).put(save_path,user['idToken'])
-# #             data_url = storage.child(user['localId']).get_url(fireb_upload['downloadTokens']) 
-# #             db.child(user['localId']).child("Data").child("Store_URL").push(data_url)
+#             # uid = user['localId']
+#             fireb_upload = storage.child(user['localId']).put(save_path,user['idToken'])
+#             data_url = storage.child(user['localId']).get_url(fireb_upload['downloadTokens']) 
+#             db.child(user['localId']).child("Data").child("Store_URL").push(data_url)
 
-# #             st.write(save_path)
-#             st.balloons()
+#             st.write(save_path)
+            st.balloons()
         
-#         butt_load_data = setup_container.button('Load data')
-#         # butt_load_file = st.button('Load file')
+        butt_load_data = setup_container.button('Load data')
+        # butt_load_file = st.button('Load file')
         
-#         if butt_load_data:
-#             data_all = db.child(user['localId']).child("Data").get().val()
-#             if data_all is not None:
-#                 val = db.child(user['localId']).child("Data").get()
-#                 # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
-#                 # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
-#                 val_by_time = db.child(user['localId']).sort(val, "Timestamp")
-#                 myfile = val_by_time.each()[0].val()
-#                 setup_container.write(len(val_by_time.each()))
-#                 setup_container.write(myfile['Filename'])
-#                 setup_container.write(myfile['Timestamp'])
-#                 setup_container.write(pd.DataFrame.from_dict(myfile['File']))
-#                 download = pd.DataFrame.from_dict(myfile['File']).to_excel('download.xlsx')
+        if butt_load_data:
+            data_all = db.child(user['localId']).child("Data").get().val()
+            if data_all is not None:
+                val = db.child(user['localId']).child("Data").get()
+                # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
+                # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
+                val_by_time = db.child(user['localId']).sort(val, "Timestamp")
+                myfile = val_by_time.each()[0].val()
+                setup_container.write(len(val_by_time.each()))
+                setup_container.write(myfile['Filename'])
+                setup_container.write(myfile['Timestamp'])
+                setup_container.write(pd.DataFrame.from_dict(myfile['File']))
+                download = pd.DataFrame.from_dict(myfile['File']).to_excel('download.xlsx')
                 
                 # for myfile in val_by_time.each():
                 #     myfile = myfile.val()

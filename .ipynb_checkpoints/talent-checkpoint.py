@@ -14,6 +14,7 @@ import base64
 import os
 import io
 import operator
+import copy
 
 import locale
 import requests
@@ -125,6 +126,9 @@ def clear_state_withexc(exclude_list):
         if key not in exclude_list:
             del st.session_state[key]
 
+def choose_run_change():
+    st.session_state['choose_fullrun_index'] = 1 - st.session_state['choose_fullrun_index']
+
 # Streamlit initialize session state to track login, upload status, data, and others ------------------------------------------------ 
 if 'login_time' not in st.session_state:
     st.session_state['login_time'] = 0
@@ -155,6 +159,12 @@ if 'cal_result' not in st.session_state:
     
 if 'menu_message' not in st.session_state:
     st.session_state['menu_message'] = None
+    
+if 'choose_fullrun' not in st.session_state:
+    st.session_state['choose_fullrun'] = None
+
+if 'choose_fullrun_index' not in st.session_state:
+    st.session_state['choose_fullrun_index'] = 0
     
 # Streamlit -----------------------------------------------------------------------------------------------------------------------
 
@@ -262,14 +272,15 @@ if st.session_state['login_status'] == 'Yes':
         setup_container.markdown("""---""")
         # setup_container.markdown("🎯 Let's Get Started")
         
-        # Step 1: Download instruction and template
+    # Step 1: Download instruction and template
         step1_col1, step1_col2, step2_col1, step2_col2, _ = setup_container.columns((1, 1.5, 1 , 2,0.5))
         step1_col1.image('Image/step1.jpg',use_column_width='auto')
+        # step1_col1.image('Image/step1.jpg',width=200)
         step1_col2.markdown("🖱️ 'Save link as...'")
         step1_col2.markdown(get_binary_file_downloader_html(file_path, 'Instruction and Template'), unsafe_allow_html=True)
         # setup_container.markdown("""---""")
         
-        # Step 2: Submit data
+    # Step 2: Submit data
         # exclude_list = ['login_status','user','username','email','menu_message','data']
         # step2_col1, step2_col2 = setup_container.columns((1, 5))
         exclude_list = ['login_status','user','username','email','menu_message']
@@ -285,13 +296,18 @@ if st.session_state['login_status'] == 'Yes':
             df = st.session_state['data']
         setup_container.markdown("""---""")
         
-        # Step 3: Data Validation
         if df is not None:
             step3_col1, step3_col2 = setup_container.columns((1, 5))
             # Yang - function validation(df)
             # Call a function to pass df and return with a output dictionary
-            output = {'validation':{'Submitted Entry':500, 'Processed Entry':490, 'Imputed Entry':3 ,'Invalid Entry':7, 'Invalid Data': df.head(10), 'Processed Data': df.head(493)}}
+            output = {'validation':{'Submitted Entry':1470, 'Processed Entry':1400, 'Imputed Entry':10 ,'Invalid Entry':60, 
+                      'Invalid Data': df.tail(60), 'Processed Data': df.head(1410),
+                      'All Valid Columns':df.columns.tolist(), 'All Valid Columns':df.columns.tolist()          
+                     }}
+            df_clean = output['validation']['Processed Data']
+            # End of Yang
             
+    # Step 3: Data Validation
             # step3_col2.write('Step 3: Validate Data')
             step3_col1, validation_col1,validation_col2,validation_col3,validation_col4, validation_col5 = setup_container.columns((1, 1, 1, 1, 1, 1))
             step3_col1.image('Image/step3.jpg',use_column_width='auto')
@@ -303,62 +319,129 @@ if st.session_state['login_status'] == 'Yes':
             if operator.not_(df_validation.empty):
                 validation_col5.markdown(get_excel_file_downloader_html(df_validation, 'Invalid Entry.xlsx'), unsafe_allow_html=True)
                 validation_col5.markdown("🖱️ 'Save link as...'")
+            setup_container.markdown("""---""")
             
+    # Step 4: Data Validation
+            step4_col1, step4_col2, step4_col3, step4_col4, step4_col5 = setup_container.columns((1, 2, 1, 1, 1))
+            step4_col1.image('Image/step3.jpg',use_column_width='auto')
+            choose_run = step4_col2.radio('Would you like to analyse entire population?',('Yes', 'No'), index = st.session_state['choose_fullrun_index'], on_change = choose_run_change)
             
-        
-        
-        
-        df_name = setup_container.text_input('Filename', '')
-        
-        butt_save_data = setup_container.button('Save data')
-        
-        if butt_save_data:
-            # setup_container.write(df.to_dict())
-            st.write(df.head(1))
-            now = datetime.now()
-            dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
-            data_save = {'Filename':df_name,
-                    'File' : df.to_dict(),
-                    'Timestamp' : dt_string} 
-            db.child(user['localId']).child("Data").push(data_save)
-            
-            # output = BytesIO()
-            # writer = pd.ExcelWriter(output, engine='xlsxwriter')
-            # df.to_excel(writer, index=False, sheet_name='Sheet1')
-            # workbook = writer.book
-            # worksheet = writer.sheets['Sheet1']
-            # writer.save()
-            # processed_data = output.getvalue()
-            
-            # save_path = get_excel_file_downloader_url(processed_data, 'save_data.xlsx')
-            # save_path = 'Test/test.xlsx'
-            
-#             save_path = uploaded_file
-            
-#             # uid = user['localId']
-#             fireb_upload = storage.child(user['localId']).put(save_path,user['idToken'])
-#             data_url = storage.child(user['localId']).get_url(fireb_upload['downloadTokens']) 
-#             db.child(user['localId']).child("Data").child("Store_URL").push(data_url)
+            st.session_state['choose_fullrun'] = choose_run
+            if st.session_state['choose_fullrun'] == 'No':
+                st.session_state['choose_fullrun_index'] = 1
+            else:
+                st.session_state['choose_fullrun_index'] = 0
 
-#             st.write(save_path)
-            st.balloons()
+    # Step 4a: Start - Run a segment of population - Allow user to choose up to 3 filters (relationship is A and B and C)
+    # If user select yes, use the entire dataset
+            df_final = copy.deepcopy(df_clean)
+            if st.session_state['choose_fullrun'] == 'No':
+                step4a_col1, step4a_col2, step4a_col3 = setup_container.columns((1, 1, 1))    
+                
+            #1st cut
+                feature_1 = step4a_col1.selectbox('1st Cut',output['validation']['All Valid Columns'])
+                cut_1 = step4a_col1.multiselect(feature_1,set(df_final[feature_1]),key='choose_cut1')
+                # setup_container.write(cut_1)
+                df_final = df_final[df_final[feature_1].isin(cut_1)]
+            #2nd cut
+                if len(cut_1)>0:
+                    cut_1_message = feature_1+' includes '+', '.join(cut_1)
+                    # setup_container.info('Run a subset where '+cut_1_message)
+                    # df_temp_1.to_excel('temp1.xlsx')
+                    feature_2 = step4a_col2.selectbox('2nd Cut',output['validation']['All Valid Columns'])
+                    # setup_container.write(set(df_final[feature_2]))
+                    cut_2 = step4a_col2.multiselect(feature_2,set(df_final[feature_2]),key='choose_cut2')
+                    df_final = df_final[df_final[feature_2].isin(cut_2)]
+            #3rd cut    
+                    if len(cut_2)>0:
+                        cut_2_message = feature_2+' includes '+', '.join(cut_2)
+                        # setup_container.info('Run a subset where '+cut_1_message+' and '+cut_2_message)
+                        
+                        df_temp_2 = df_clean[df_clean[feature_2].isin(cut_2)]
+                        # df_temp_1.to_excel('temp1.xlsx')
+                        feature_3 = step4a_col3.selectbox('3rd Cut',output['validation']['All Valid Columns'])
+                        # setup_container.write(set(df_temp_2[feature_3]))
+                        cut_3 = step4a_col3.multiselect(feature_3,set(df_temp_2[feature_3]),key='choose_cut3')
+                        df_final = df_final[df_final[feature_3].isin(cut_3)]
+                        
+                        if len(cut_3)>0:
+                            cut_3_message = feature_3+' includes '+', '.join(cut_3)
+                            # setup_container.info('Run a subset where '+cut_1_message+' and '+cut_2_message +' and '+cut_3_message)
+    # Step 4a. End - output a user selected defined dataset
+            setup_container.markdown("""---""")
+            # if len(cut_1)>0:
+            # df_final.to_excel('final_data.xlsx')
+    
+    
+            
+                
+                
+                # with step4_col3.form("user selection"):
+                #     feature_1 = st.selectbox('1st Cut',output['validation']['All Valid Columns'])
+                #     cut_1 = st.multiselect(feature_1,set(df[feature_1]))
+                #     cut_submit = st.form_submit_button("Submit")
+                
+                # cut2 = st.selectbox('1st Cut',('Email', 'Home phone', 'Mobile phone'))
+                # cut3 = st.selectbox('1st Cut',('Email', 'Home phone', 'Mobile phone'))
+                
+                
+           # Step 5: Run a segment of population - Allow user to choose up to 3 filters
+                # step5_col1, step5_col2, step5_col3, step5_col4 = setup_container.columns((1, 2, 2, 2))
+                # step5_col1.image('Image/step3.jpg',use_column_width='auto')
+                
         
-        butt_load_data = setup_container.button('Load data')
-        # butt_load_file = st.button('Load file')
         
-        if butt_load_data:
-            data_all = db.child(user['localId']).child("Data").get().val()
-            if data_all is not None:
-                val = db.child(user['localId']).child("Data").get()
-                # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
-                # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
-                val_by_time = db.child(user['localId']).sort(val, "Timestamp")
-                myfile = val_by_time.each()[0].val()
-                setup_container.write(len(val_by_time.each()))
-                setup_container.write(myfile['Filename'])
-                setup_container.write(myfile['Timestamp'])
-                setup_container.write(pd.DataFrame.from_dict(myfile['File']))
-                download = pd.DataFrame.from_dict(myfile['File']).to_excel('download.xlsx')
+#         df_name = setup_container.text_input('Filename', '')
+        
+#         butt_save_data = setup_container.button('Save data')
+        
+#         if butt_save_data:
+#             # setup_container.write(df.to_dict())
+#             st.write(df.head(1))
+#             now = datetime.now()
+#             dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
+#             data_save = {'Filename':df_name,
+#                     'File' : df.to_dict(),
+#                     'Timestamp' : dt_string} 
+#             db.child(user['localId']).child("Data").push(data_save)
+            
+#             # output = BytesIO()
+#             # writer = pd.ExcelWriter(output, engine='xlsxwriter')
+#             # df.to_excel(writer, index=False, sheet_name='Sheet1')
+#             # workbook = writer.book
+#             # worksheet = writer.sheets['Sheet1']
+#             # writer.save()
+#             # processed_data = output.getvalue()
+            
+#             # save_path = get_excel_file_downloader_url(processed_data, 'save_data.xlsx')
+#             # save_path = 'Test/test.xlsx'
+            
+# #             save_path = uploaded_file
+            
+# #             # uid = user['localId']
+# #             fireb_upload = storage.child(user['localId']).put(save_path,user['idToken'])
+# #             data_url = storage.child(user['localId']).get_url(fireb_upload['downloadTokens']) 
+# #             db.child(user['localId']).child("Data").child("Store_URL").push(data_url)
+
+# #             st.write(save_path)
+#             st.balloons()
+        
+#         butt_load_data = setup_container.button('Load data')
+#         # butt_load_file = st.button('Load file')
+        
+#         if butt_load_data:
+#             data_all = db.child(user['localId']).child("Data").get().val()
+#             if data_all is not None:
+#                 val = db.child(user['localId']).child("Data").get()
+#                 # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
+#                 # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
+#                 val_by_time = db.child(user['localId']).sort(val, "Timestamp")
+#                 myfile = val_by_time.each()[0].val()
+#                 setup_container.write(len(val_by_time.each()))
+#                 setup_container.write(myfile['Filename'])
+#                 setup_container.write(myfile['Timestamp'])
+#                 setup_container.write(pd.DataFrame.from_dict(myfile['File']))
+#                 download = pd.DataFrame.from_dict(myfile['File']).to_excel('download.xlsx')
                 
                 # for myfile in val_by_time.each():
                 #     myfile = myfile.val()
@@ -391,7 +474,12 @@ if st.session_state['login_status'] == 'Yes':
     elif select == 'Insight':
         # st.title('Attrition Analytics')
         # st.write('We are building an analytics platform to better understand turnover risk')
-        with st.form("my_form"):
+        
+        insight_place = st.empty()
+        insight_container = insight_place.container()
+        
+        
+        with insight_container.form("my_form"):
             cal_start = st.number_input('Insert a number')
             cal_add = st.number_input('Add a number')
             cal_submit = st.form_submit_button("Submit")
@@ -400,7 +488,7 @@ if st.session_state['login_status'] == 'Yes':
             st.write('your final number is: '+str(cal_result))
             st.session_state['cal_result'] = cal_result
         
-        butt_save = st.button('Save result')
+        butt_save = insight_container.button('Save result')
         if butt_save:
             cal_result = st.session_state['cal_result']
             now = datetime.now()
