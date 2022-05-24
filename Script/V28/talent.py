@@ -346,7 +346,6 @@ if st.session_state['login_status'] == 'Yes':
         df = None
         if (uploaded_file is not None) and (st.session_state['upload_status'] == "No"):
             df = pd.read_excel(uploaded_file,sheet_name="Submission")
-            
             df_type = df.iloc[0].tolist()
             # df_type.columns=['col_type']
             df = df.iloc[1:,:]
@@ -368,8 +367,8 @@ if st.session_state['login_status'] == 'Yes':
             step3_col1, step3_col2 = setup_container.columns((1, 5))
             # Yang - function validation(df)
             # Call a function to pass df and return with a output dictionary
-            output = {'validation':{'Submitted Entry':1470, 'Processed Entry':1400,'Invalid Entry':70, 
-                      'Invalid Data': df.tail(70), 'Processed Data': df.head(1410),
+            output = {'validation':{'Submitted Entry':1470, 'Processed Entry':1400, 'Imputed Entry':10 ,'Invalid Entry':60, 
+                      'Invalid Data': df.tail(60), 'Processed Data': df.head(1410),
                       'All Valid Columns':df.columns.tolist(), 'All Valid Columns and Types':dict(zip(df.columns.tolist(), df_type))        
                      }}
             df_clean = output['validation']['Processed Data']
@@ -385,6 +384,7 @@ if st.session_state['login_status'] == 'Yes':
             step3_col1.image('Image/step3.jpg',use_column_width='auto')
             validation_col1.metric('Submitted Entry',output['validation']['Submitted Entry'])
             validation_col2.metric('Processed Entry',output['validation']['Processed Entry'])
+            validation_col3.metric('Imputed Entry',output['validation']['Imputed Entry'])
             validation_col4.metric('Invalid Entry',output['validation']['Invalid Entry'])
             df_validation = output['validation']['Invalid Data']
             if operator.not_(df_validation.empty):
@@ -408,27 +408,86 @@ if st.session_state['login_status'] == 'Yes':
             df_final = copy.deepcopy(df_clean)
             if st.session_state['choose_fullrun'] == 'No':
                 step4a_col1, step4a_col2, step4a_col3 = setup_container.columns((1, 1, 1))    
-                feature_1 = step4a_col1.selectbox('1st Cut',output['validation']['All Valid Columns'])
-                st.session_state['feature_1'] = feature_1                
+                
+            #1st cut
+                # feature_1 = step4a_col1.selectbox('1st Cut',output['validation']['All Valid Columns'], index = st.session_state['feature_1_index'], 
+                #                                   key = 'feature_1_select', on_change = feature_1_index_change, args = (st.session_state['feature_1_select'],df_col_list) 
+                #                                  )
+                
+                if st.session_state['feature_1_select'] == None:
+                    st.session_state['feature_1_select'] = 'ID'
+                else:
+                    f1_all = db.child(user['localId']).child("Feature").child("Feature_1").get().val()
+                    print(f1_all)
+                    if f1_all is not None:
+                        f1_val = db.child(user['localId']).child("Feature").child("Feature_1").get()
+                        # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
+                        # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
+                        val_by_time = db.child(user['localId']).sort(f1_val, "Timestamp")
+                        print(val_by_time)
+                        myfile = val_by_time.each()[0].val()
+                        setup_container.write("get F1")
+                        setup_container.write(myfile['F1'])
+                        setup_container.write(myfile['Timestamp'])
+                        st.session_state['feature_1_select'] = myfile['F1']
+                
+                # f1_all = db.child(user['localId']).child("Feature").child("Feature_1").get().val()
+                # print(f1_all)
+                # if f1_all is not None:
+                #     f1_val = db.child(user['localId']).child("Feature").child("Feature_1").get()
+                #     # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
+                #     # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
+                #     val_by_time = db.child(user['localId']).sort(f1_val, "Timestamp")
+                #     myfile = val_by_time.each()[len(val_by_time.each())-1].val()
+                #     val_by_time
+                #     setup_container.write("get F1")
+                #     setup_container.write(myfile['F1'])
+                #     setup_container.write(myfile['Timestamp'])
+                #     # st.session_state['feature_1_select'] = myfile['F1']                
+
+                
+                feature_1 = step4a_col1.selectbox('1st Cut',output['validation']['All Valid Columns'], key = 'feature_1_select')
+                setup_container.write("after run")
+                setup_container.write(feature_1)
+                feature_1_change(feature_1)
+                
+                # st.session_state['feature_1_select_save'] = feature_1
+                # setup_container.write(db.child(user['localId']).child("Feature").get().val())
+                
+                # Update default selection
+                # feature_1_index_change(feature_1,df_col_list)
+                st.session_state['feature_1'] = feature_1
+                # setup_container.write(st.session_state['feature_1'])
+                # setup_container.write(feature_1)
+                
                 if df_col_dict[feature_1] == 'text':
-                    cut_1 = step4a_col1.multiselect(feature_1,set(df_final[feature_1]), key='choose_cut1')
+                    cut_1 = step4a_col1.multiselect(feature_1,set(df_final[feature_1]), key='choose_cut1', 
+                                                    default=st.session_state['cut_1_text_default'])
+                    cut_1_text_default_change(cut_1)
                     st.session_state['cut_1_text'] = cut_1
                     df_final = df_final[df_final[feature_1].isin(cut_1)]
                 elif df_col_dict[feature_1] == 'numeric':
                     range_min = df_final[feature_1].min()
                     range_max = df_final[feature_1].max()
-                    cut_1 = step4a_col1.slider('Select a range of values',range_min,range_max,(range_min,range_max))
+                    cut_1 = step4a_col1.slider('Select a range of values',range_min,range_max, 
+                                               st.session_state['cut_1_range'])
+                    cut_1_numeric_default_change(cut_1)
                     st.session_state['cut_1_numeric'] = cut_1
                     df_final = df_final[(df_final[feature_1]>=min(cut_1)) & (df_final[feature_1]<=max(cut_1))]
             #2nd cut
                 if len(cut_1)>0:
+                    # cut_1_message = feature_1+' includes '+', '.join(cut_1)
+                    # setup_container.info('Run a subset where '+cut_1_message)
+                    # df_temp_1.to_excel('temp1.xlsx')
                     feature_2 = step4a_col2.selectbox('2nd Cut',output['validation']['All Valid Columns'])
+                    # setup_container.write(set(df_final[feature_2]))
                     cut_2 = step4a_col2.multiselect(feature_2,set(df_final[feature_2]),key='choose_cut2')
                     df_final = df_final[df_final[feature_2].isin(cut_2)]
             #3rd cut    
                     if len(cut_2)>0:
                         # cut_2_message = feature_2+' includes '+', '.join(cut_2)
                         # setup_container.info('Run a subset where '+cut_1_message+' and '+cut_2_message)
+                        
                         df_temp_2 = df_clean[df_clean[feature_2].isin(cut_2)]
                         # df_temp_1.to_excel('temp1.xlsx')
                         feature_3 = step4a_col3.selectbox('3rd Cut',output['validation']['All Valid Columns'])

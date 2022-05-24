@@ -1,21 +1,35 @@
-/* div.css-157irdm.e1tzin5v4 p.content-row.card-content {
-    font-size: 0.3rem
-    color: red
-} */
+ /* header element to be removed */
+ header[data-testid="stHeader"] {
+    display:none;
+}
 
-/* div.css-1ht1j8u.e16fv1kl0 {
-    font-size: 30px
-    color: red
-} */
+/* The navigation menu specs and size */
+section[data-testid='stSidebar'] > div {
+    height: 100%;
+    width: 95px;
+    position: relative;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    background-color: #111;
+    overflow-x: hidden;
+    transition: 0.5s ease;
+    padding-top: 60px;
+    white-space: nowrap;
+}
 
-/* div.css-12w0qpk.e1tzin5v2 {
-    background-color: #f9f9f9;
-    padding: 3% 3% 3% 3%;
-    border-radius: 5px;
-} */
+ /* The navigation menu open and close on hover and size */
+ section[data-testid='stSidebar'] > div {
+   height: 100%;
+   width: 75px; /* Put some width to hover on. */
+}
 
-div.element-container.css-g6eez4.e1tzin5v1 {
-    background-color: #EEEEEE;
-    padding: 3% 3% 3% 3%;
-    border-radius: 5px;
+/* ON HOVER */
+section[data-testid='stSidebar'] > div:hover{
+   width: 250px;
+}
+
+/* The button on the streamlit navigation menu - hidden */
+button[kind="header"] {
+    display: none;
 }

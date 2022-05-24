@@ -129,35 +129,6 @@ def clear_state_withexc(exclude_list):
 def choose_run_change():
     st.session_state['choose_fullrun_index'] = 1 - st.session_state['choose_fullrun_index']
 
-def feature_1_change(feature_1_change):
-    # feature_1_position = col_list.index(feature_1_change)
-    # st.session_state['feature_1_index'] = feature_1_position
-    # print('look at position')
-    # print(feature_1_position)
-    print("F1 change running")
-    now = datetime.now()
-    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
-    feature_1_save = {'F1' : feature_1_change,
-                    'Timestamp' : dt_string} 
-    db.child(user['localId']).child("Feature").child("Feature_1").push(feature_1_save)
-    
-# def feature_1_index_change(feature_1_change,col_list):
-#     # feature_1_position = col_list.index(feature_1_change)
-#     # st.session_state['feature_1_index'] = feature_1_position
-#     # print('look at position')
-#     # print(feature_1_position)
-#     now = datetime.now()
-#     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
-#     feature_1_save = {'feature_1' : dict(feature_1_change),
-#                     'Timestamp' : dt_string} 
-#     db.child(user['localId']).child("Feature").child("Feature_1").push(feature_1_save)
-    
-def cut_1_text_default_change(cut_1):
-    st.session_state['cut_1_text_default'] = cut_1
-
-def cut_1_numeric_default_change(cut_1):
-    st.session_state['cut_1_range'] = [cut_1.min(),cui_1.max()]
-    
 # Streamlit initialize session state to track login, upload status, data, and others ------------------------------------------------ 
 if 'login_time' not in st.session_state:
     st.session_state['login_time'] = 0
@@ -170,9 +141,6 @@ if 'login_status' not in st.session_state:
 
 if 'data' not in st.session_state:
     st.session_state['data'] = None
-
-if 'data_type' not in st.session_state:
-    st.session_state['data_type'] = None
 
 if 'upload_status' not in st.session_state:
     st.session_state['upload_status'] = "No"
@@ -198,31 +166,8 @@ if 'choose_fullrun' not in st.session_state:
 if 'choose_fullrun_index' not in st.session_state:
     st.session_state['choose_fullrun_index'] = 0
     
-if 'feature_1' not in st.session_state:
-    st.session_state['feature_1'] = None    
-    
-if 'feature_1_index' not in st.session_state:
-    st.session_state['feature_1_index'] = 0
-    
-# if 'feature_1_select_save' not in st.session_state:
-#     st.session_state['feature_1_select_save'] = None
-    
-if 'feature_1_select' not in st.session_state:
-    st.session_state['feature_1_select'] = None
-
-if 'cut_1_text' not in st.session_state:
-    st.session_state['cut_1_text'] = None
-    
-if 'cut_1_text_default' not in st.session_state:
-    st.session_state['cut_1_text_default'] = None
-    
-if 'cut_1_numeric' not in st.session_state:
-    st.session_state['cut_1_numeric'] = None
-    
-if 'cut_1_range' not in st.session_state:
-    st.session_state['cut_1_range'] = None
-    
 # Streamlit -----------------------------------------------------------------------------------------------------------------------
+
 # Authentication -----------------------------------------------------------------------------------------------------------------------
 # choice_place = st.empty()
 # choice_container = choice_place.container()
@@ -346,37 +291,29 @@ if st.session_state['login_status'] == 'Yes':
         df = None
         if (uploaded_file is not None) and (st.session_state['upload_status'] == "No"):
             df = pd.read_excel(uploaded_file,sheet_name="Submission")
-            
-            df_type = df.iloc[0].tolist()
-            # df_type.columns=['col_type']
+            df_type = df.iloc[0]
             df = df.iloc[1:,:]
-            # df_type.to_excel('type.xlsx')
+            df_type.to_excel('type.xlsx')
             df.to_excel('df.xlsx')
             
             # df['price_update'] = df['price']*100
             print(df_type)
             st.session_state['data'] = df
-            st.session_state['data_type'] = df_type
             st.session_state['upload_status'] = "Yes"
-            
         elif st.session_state['upload_status'] == "Yes":
             df = st.session_state['data']
-            df_type = st.session_state['data_type']
         setup_container.markdown("""---""")
         
         if df is not None:
             step3_col1, step3_col2 = setup_container.columns((1, 5))
             # Yang - function validation(df)
             # Call a function to pass df and return with a output dictionary
-            output = {'validation':{'Submitted Entry':1470, 'Processed Entry':1400,'Invalid Entry':70, 
-                      'Invalid Data': df.tail(70), 'Processed Data': df.head(1410),
-                      'All Valid Columns':df.columns.tolist(), 'All Valid Columns and Types':dict(zip(df.columns.tolist(), df_type))        
+            output = {'validation':{'Submitted Entry':1470, 'Processed Entry':1400, 'Imputed Entry':10 ,'Invalid Entry':60, 
+                      'Invalid Data': df.tail(60), 'Processed Data': df.head(1410),
+                      'All Valid Columns':df.columns.tolist(), 'All Valid Columns and Types':dict(zip(df.columns.tolist(), df_type['0']))        
                      }}
             df_clean = output['validation']['Processed Data']
-            # df_col_list = output['validation']['All Valid Columns'] 
             df_col_dict = output['validation']['All Valid Columns and Types']
-            df_col_list = list(df_col_dict.keys())
-            
             # End of Yang
             
     # Step 3: Data Validation
@@ -385,6 +322,7 @@ if st.session_state['login_status'] == 'Yes':
             step3_col1.image('Image/step3.jpg',use_column_width='auto')
             validation_col1.metric('Submitted Entry',output['validation']['Submitted Entry'])
             validation_col2.metric('Processed Entry',output['validation']['Processed Entry'])
+            validation_col3.metric('Imputed Entry',output['validation']['Imputed Entry'])
             validation_col4.metric('Invalid Entry',output['validation']['Invalid Entry'])
             df_validation = output['validation']['Invalid Data']
             if operator.not_(df_validation.empty):
@@ -408,27 +346,34 @@ if st.session_state['login_status'] == 'Yes':
             df_final = copy.deepcopy(df_clean)
             if st.session_state['choose_fullrun'] == 'No':
                 step4a_col1, step4a_col2, step4a_col3 = setup_container.columns((1, 1, 1))    
+                
+            #1st cut
                 feature_1 = step4a_col1.selectbox('1st Cut',output['validation']['All Valid Columns'])
-                st.session_state['feature_1'] = feature_1                
                 if df_col_dict[feature_1] == 'text':
-                    cut_1 = step4a_col1.multiselect(feature_1,set(df_final[feature_1]), key='choose_cut1')
-                    st.session_state['cut_1_text'] = cut_1
+                    cut_1 = step4a_col1.multiselect(feature_1,set(df_final[feature_1]),key='choose_cut1')
+                    setup_container.write(cut_1)
                     df_final = df_final[df_final[feature_1].isin(cut_1)]
                 elif df_col_dict[feature_1] == 'numeric':
                     range_min = df_final[feature_1].min()
                     range_max = df_final[feature_1].max()
-                    cut_1 = step4a_col1.slider('Select a range of values',range_min,range_max,(range_min,range_max))
-                    st.session_state['cut_1_numeric'] = cut_1
-                    df_final = df_final[(df_final[feature_1]>=min(cut_1)) & (df_final[feature_1]<=max(cut_1))]
+                    cut_1 = step4a_col1st.slider('Select a range of values',range_min,range_max, (range_min, range_max))
+                    setup_container.write(cut_1)
+                    df_final = df_final[df_final[feature_1].isin(cut_1)]
+                
             #2nd cut
                 if len(cut_1)>0:
+                    cut_1_message = feature_1+' includes '+', '.join(cut_1)
+                    # setup_container.info('Run a subset where '+cut_1_message)
+                    # df_temp_1.to_excel('temp1.xlsx')
                     feature_2 = step4a_col2.selectbox('2nd Cut',output['validation']['All Valid Columns'])
+                    # setup_container.write(set(df_final[feature_2]))
                     cut_2 = step4a_col2.multiselect(feature_2,set(df_final[feature_2]),key='choose_cut2')
                     df_final = df_final[df_final[feature_2].isin(cut_2)]
             #3rd cut    
                     if len(cut_2)>0:
-                        # cut_2_message = feature_2+' includes '+', '.join(cut_2)
+                        cut_2_message = feature_2+' includes '+', '.join(cut_2)
                         # setup_container.info('Run a subset where '+cut_1_message+' and '+cut_2_message)
+                        
                         df_temp_2 = df_clean[df_clean[feature_2].isin(cut_2)]
                         # df_temp_1.to_excel('temp1.xlsx')
                         feature_3 = step4a_col3.selectbox('3rd Cut',output['validation']['All Valid Columns'])
@@ -437,13 +382,12 @@ if st.session_state['login_status'] == 'Yes':
                         df_final = df_final[df_final[feature_3].isin(cut_3)]
                         
                         if len(cut_3)>0:
-                            print('a')
-                            # cut_3_message = feature_3+' includes '+', '.join(cut_3)
+                            cut_3_message = feature_3+' includes '+', '.join(cut_3)
                             # setup_container.info('Run a subset where '+cut_1_message+' and '+cut_2_message +' and '+cut_3_message)
     # Step 4a. End - output a user selected defined dataset
             setup_container.markdown("""---""")
             # if len(cut_1)>0:
-            df_final.to_excel('final_data.xlsx')
+            # df_final.to_excel('final_data.xlsx')
     
     
             
