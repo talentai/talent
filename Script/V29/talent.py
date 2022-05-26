@@ -115,16 +115,9 @@ def get_binary_file_downloader_html(bin_file, file_label='File'):
 def get_excel_file_downloader_html(data, file_label='File'):
     output = BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    data.to_excel(writer, index=False, sheet_name='Submission')
+    data.to_excel(writer, index=False, sheet_name='Sheet1')
     workbook = writer.book
-    worksheet = writer.sheets['Submission']
-    
-    for column in data:
-            column_width = max(data[column].astype(str).map(len).max(), len(column))+3
-            col_idx = data.columns.get_loc(column)
-            writer.sheets['Submission'].set_column(col_idx, col_idx, column_width)
-    cell_format = workbook.add_format()  
-    
+    worksheet = writer.sheets['Sheet1']
     writer.save()
     processed_data = output.getvalue()
     bin_str = base64.b64encode(processed_data).decode()
@@ -189,9 +182,6 @@ if 'login_status' not in st.session_state:
 
 if 'data' not in st.session_state:
     st.session_state['data'] = None
-
-if 'data_loader' not in st.session_state:
-    st.session_state['data_loader'] = None
 
 if 'data_type' not in st.session_state:
     st.session_state['data_type'] = None
@@ -368,69 +358,75 @@ if st.session_state['login_status'] == 'Yes':
         df = None
         if (uploaded_file is not None) and (st.session_state['upload_status'] == "No"):
             df = pd.read_excel(uploaded_file,sheet_name="Submission", header=[0, 1])
-        # call dataloader class
+    # Load/validate/transform data
+    # call classes
             data_loader = DataLoader(df)
-            st.session_state['data'] = df
-            st.session_state['data_loader'] = data_loader
-            st.session_state['upload_status'] = "Yes"
-            
-        elif st.session_state['upload_status'] == "Yes":
-        # read dataloader from memory
-            df = st.session_state['data']
-            data_loader = st.session_state['data_loader']
-        
-        setup_container.markdown("""---""")
-        if df is not None:
-    
-    # Step 3: Data Validation
-        # call data validator class
             data_validator = DataValidator(config, data_loader)
             validation_results, data = data_validator.apply_validation()
+            
+            
             
             setup_container.write(validation_results)
             data.to_excel('data.xlsx')
             
             df_type_text = data_loader.fieldTypeDict['text']
             df_type_num = data_loader.fieldTypeDict['numeric']
-            df_type_date = data_loader.fieldTypeDict['date']
-            
             df = data_loader.data
             df_col_name = data_loader.column_name
+            
+            
+            
+            # setup_container.write(df_col_name)
+            # setup_container.write(df_type_num)
+            # df_type = df.iloc[0].tolist()
+            # df_type.columns=['col_type']
+            # df = df.iloc[1:,:]
+            # df_type.to_excel('type.xlsx')
+            # df.to_excel('df.xlsx')
+            
+            # df['price_update'] = df['price']*100
+            # print(df_type)
+            st.session_state['data'] = df
+            
+            # st.session_state['data_type'] = df_type
+            st.session_state['upload_status'] = "Yes"
+            
+            adsf
+            
+        elif st.session_state['upload_status'] == "Yes":
+            df = st.session_state['data']
+            df_type = st.session_state['data_type']
+        setup_container.markdown("""---""")
         
-        # Output validation result in streamlit
+        if df is not None:
             step3_col1, step3_col2 = setup_container.columns((1, 5))
             # Yang - function validation(df)
             # Call a function to pass df and return with a output dictionary
             output = {'validation':{'Submitted Entry':1470, 'Processed Entry':1400,'Invalid Entry':70, 
-                      'Invalid Data': df.tail(70), 'Processed Data': df.head(1410)     
+                      'Invalid Data': df.tail(70), 'Processed Data': df.head(1410),
+                      'All Valid Columns':df.columns.tolist(), 'All Valid Columns and Types':dict(zip(df.columns.tolist(), df_type))        
                      }}
             df_clean = output['validation']['Processed Data']
             # df_col_list = output['validation']['All Valid Columns'] 
-            # df_col_dict = output['validation']['All Valid Columns and Types']
-            # df_col_list = list(df_col_dict.keys())
-
+            df_col_dict = output['validation']['All Valid Columns and Types']
+            df_col_list = list(df_col_dict.keys())
+            
             # End of Yang
+            
+    # Step 3: Data Validation
             # step3_col2.write('Step 3: Validate Data')
             step3_col1, validation_col1,validation_col2,validation_col3,validation_col4, validation_col5 = setup_container.columns((1, 1, 1, 1, 1, 1))
             step3_col1.image('Image/step3.jpg',use_column_width='auto')
-            validation_col2.metric('Submitted Entry',output['validation']['Submitted Entry'])
-            validation_col3.metric('Processed Entry',output['validation']['Processed Entry'])
+            validation_col1.metric('Submitted Entry',output['validation']['Submitted Entry'])
+            validation_col2.metric('Processed Entry',output['validation']['Processed Entry'])
             validation_col4.metric('Invalid Entry',output['validation']['Invalid Entry'])
             df_validation = output['validation']['Invalid Data']
             if operator.not_(df_validation.empty):
                 validation_col5.markdown(get_excel_file_downloader_html(df_validation, 'Invalid Entry.xlsx'), unsafe_allow_html=True)
                 validation_col5.markdown("🖱️ 'Save link as...'")
             setup_container.markdown("""---""")
-    
-    # Step 4: Data Transformation (Calculate Tenure and Span of control)
-            step4_col1, step4_col2, step4_col3, step4_col4 = setup_container.columns((1, 2, 2, 1))
-            step4_col1.image('Image/step3.jpg',use_column_width='auto')
-            choose_tenure = step4_col2.checkbox('Calculate "Tenure" from hire dates')
-            choose_span = step4_col3.checkbox('Calculate manager "Span of Control" from manager ID')
-        
-            asdf
             
-    # Step 5: Data Cuts
+    # Step 4: Data Validation
             step4_col1, step4_col2, step4_col3, step4_col4, step4_col5 = setup_container.columns((1, 2, 1, 1, 1))
             step4_col1.image('Image/step3.jpg',use_column_width='auto')
             choose_run = step4_col2.radio('Would you like to analyse entire population?',('Yes', 'No'), index = st.session_state['choose_fullrun_index'], on_change = choose_run_change)
