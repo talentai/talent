@@ -19,4 +19,4 @@ pyrebase4
 plost
 streamlit_option_menu
 protobuf
-st_aggrid
+streamlit-aggrid
