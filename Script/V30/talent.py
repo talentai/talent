@@ -37,7 +37,6 @@ from config import Config
 from classes import DataLoader, DataValidator, Transformer
 from streamlit_function import *
 from streamlit_echarts import st_echarts
-from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, GridOptionsBuilder, JsCode
 
 import logging
 logger = logging.getLogger()
@@ -601,14 +600,35 @@ if st.session_state['login_status'] == 'Yes':
         insight_container.markdown("---")
 
         # Model Accuracy---------------------------------------------------------------------------------------------------------
+        insight_container.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 150%; color: #3498DB; opacity: 0.7'>Model Robustness</h1>", unsafe_allow_html=True)
+        overview_col1, overview_col2, overview_col3 = insight_container.columns((1, 1.5, 1.5))
+        
+        acc = 0.9
+        acc_baseline = 0.85
+        with overview_col1:
+            overview_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Accuracy</h1>", unsafe_allow_html=True)
+            acc_options = get_accuracy_chart(acc,acc_baseline)
+            st_echarts(options=acc_options,height="200px")
+        
+        overview_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>What is it?</h1>", unsafe_allow_html=True)
+        overview_col2.write("Model accuracy measures how well a model explain turnover behavior. Higher accuracy means greater confidence of the findings are true and predictions are correct. Model accuracy is further compared with baseline accuracy and it must be higher than baseline to be considered useful on a problem.") 
+# Accuracy is defined as the percentage of correct predicted turnovers as % of headcount. It is calculated by dividing the number of correct predicted turnover headcount by the number of total headcount")
+        # overview_col2.latex(r'''Accuracy = left(\frac{Number of correct predicted turnover}{Total Headcount}\right)''')
+        # overview_col2.latex(r''' Accuracy = \left(\frac{A}{B}\right)''')
+        overview_col2.write('Model Accuracy = A/B; where A = Number of correct predictions, B = Number of predictions')
+        overview_col2.write('Baseline Accuracy = C/B; where C = Number of correct predictions if we assume everyone stayed, B = Number of predictions')
+        
+        # overview_col2.latex(r''' Accuracy =a \left(\frac{1-r^{n}}{1-r}\right)''')
+        
+        overview_col3.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Observation</h1>", unsafe_allow_html=True)        
+        overview_col3.write('Out of 700 predictions in the model, 100 employees are correctly predicted as terminated and 500 employees are correctly predicted to stay. The total number of stayed employees is 400. And hence:' +'\n'+'* Model Accuracy = (100+500)/700'+'\n'+'* Baseline Accuracy = 400/700'+'\n'+'As the model accuracy exceed baseline, the model is effective to explain turnover causes and make valid predictions',unsafe_allow_html=True)
+        insight_container.markdown("---")
 
         # SHAP and PDP Insight ---------------------------------------------------------------------------------------------------------
         insight_container.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 150%; color: #3498DB; opacity: 0.7'>Tunrover Drivers</h1>", unsafe_allow_html=True)
         driver_col1, driver_col2, driver_col3 = insight_container.columns((1, 1.5, 1.5)) 
         driver_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Driver Impact</h1>", unsafe_allow_html=True)
         driver_col1.write("placeholder for a bar chart here, value is the SHAP value, red indicate it is negative (drive turnover down), green indicate it is positive (driver turnover up)")
-        driver_col1.image('Image/importance.png',use_column_width='auto')
-        
         driver_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>What is it?</h1>", unsafe_allow_html=True)
         driver_col2.write("Driver importance measures xxxxx.")
         driver_col3.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Observation</h1>", unsafe_allow_html=True)
@@ -617,26 +637,19 @@ if st.session_state['login_status'] == 'Yes':
 
         # Driver Drill Down ---------------------------------------------------------------------------------------------------------
         pdp_col1, pdp_col2, pdp_col3 = insight_container.columns((1, 1.5, 1.5))         
-        pdp_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Driver Deepdive</h1>", unsafe_allow_html=True)
         pdp_select = pdp_col1.selectbox( 'Select a driver', ('Compensation', 'Equity', 'Tenure'))
         pdp_col1.markdown('You selected: ' + pdp_select)
         
-        pdp_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Current Status</h1>", unsafe_allow_html=True)
         pdp_col2.markdown('if selection is numeric, show: average, median, min, and max, below show a seaborn or matplot distribution')
-        pdp_col2.image('Image/distribution.png',use_column_width='auto')
-        
         pdp_col2.markdown('if selection is text, show: number of categtory, below show a donut chart - category by headcount')
-        pdp_col2.image('Image/donut.png',use_column_width='auto')
         
-        pdp_col3.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Turnover Impact</h1>", unsafe_allow_html=True)
         pdp_col3.markdown('PDP plot here, include a color line to indicate the current average for numeric selection')
         pdp_col3.image('Image/pdp.png',use_column_width='auto')
         insight_container.markdown("---")
         
         # Driver Drill Down ---------------------------------------------------------------------------------------------------------
-        sim_col1, sim_col2, sim_col3 = insight_container.columns((1, 1.5, 0.1))         
+        sim_col1, sim_col2, sim_col3 = insight_container.columns((1, 1.5, 1.5))         
         # pdp_select = sim_col1.selectbox( 'Select a driver', ('Compensation', 'Equity', 'Tenure'))
-        sim_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Driver Simulation</h1>", unsafe_allow_html=True)
         sim_col1.markdown('Simulation by changing the value or proportion of the driver')
         sim_col1.markdown('if selection is numeric, show:')
         num_select = sim_col1.slider('Select a new value', min_value = 0, max_value = 130, value=25)
@@ -644,51 +657,14 @@ if st.session_state['login_status'] == 'Yes':
         
         sim_col1.markdown('if selection is text, show: percentage of each class in the category')
         
-        df_template = pd.DataFrame(
-            [['Yes','60','70'],['No','40','30']],
-            # index=['Yes','No'],
-            columns=['Category','Current','Simulation'])
         
-        text_form = sim_col1.form("Text Form")
-        js = JsCode("""
-                    function(e) {
-                        let api = e.api;
-                        let rowIndex = e.rowIndex;
-                        let col = e.column.colId;
-                        let rowNode = api.getDisplayedRowAtIndex(rowIndex);
-                        api.flashCells({
-                          rowNodes: [rowNode],
-                          columns: [col],
-                          flashDelay: 10000000000
-                        });
-                    };
-                    """)
-        with text_form:
-            text_form.write('Promotion')
-            gb = GridOptionsBuilder.from_dataframe(df_template)
-            # st.write(gb)
-            # gb.configure_pagination()
-            gb.configure_auto_height(autoHeight=True)
-            gb.configure_grid_options(onCellValueChanged=js)
-            gridOptions = gb.build()
-            gridOptions['defaultColDef']['editable']=True
-            
-            # st.write(gridOptions['defaultColDef']['editable'])
-            # st.write(gridOptions)
-            
-            response = AgGrid(df_template, editable=True, fit_columns_on_grid_load=True, gridOptions=gridOptions,allow_unsafe_jscode=True, reload_data=False)
-            submitted_text_form = text_form.form_submit_button()
-
-        sim_col1.write(response['data'])
         
-        sim_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Impact Simulation</h1>", unsafe_allow_html=True)
-        sim_col2.metric("Current Turnover Rate", "25%")
-        sim_col2.metric("Simulate Turnover Rate", "20%", "-5%")
-        sim_col2.markdown('By changing turnover driver X, the turnover rate is expected to increase/decrease by y%')
-#         sim_col2.markdown('if selection is text, show: number of categtory, below show a donut chart - category by headcount')
         
-        # sim_col3.markdown('PDP plot here, include a color line to indicate the current average for numeric selection')
-        # sim_col3.image('Image/pdp.png',use_column_width='auto')
+        sim_col2.markdown('if selection is numeric, show: average, median, min, and max, below show a seaborn or matplot distribution')
+        sim_col2.markdown('if selection is text, show: number of categtory, below show a donut chart - category by headcount')
+        
+        sim_col3.markdown('PDP plot here, include a color line to indicate the current average for numeric selection')
+        sim_col3.image('Image/pdp.png',use_column_width='auto')
         
         
         
@@ -712,73 +688,6 @@ if st.session_state['login_status'] == 'Yes':
 #             db.child(user['localId']).child("Calculation").push(cal_save)
 #             st.balloons()
 
-    elif select == 'Model Performance':    
-        model_place = st.empty()
-        model_container = model_place.container()
-        
-        model_container.title('Model Performance')
-        model_container.markdown("---")
-        model_container.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 150%; color: #3498DB; opacity: 0.7'>Prediction Summary</h1>", unsafe_allow_html=True)
-        overview_col1, overview_col2, overview_col3 = model_container.columns((1, 1.5, 1.5))
-        overview_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Overview</h1>", unsafe_allow_html=True)
-        overview_col1.image('Image/matrix.png',use_column_width='auto')
-        overview_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>What is it?</h1>", unsafe_allow_html=True)
-        overview_col2.write('Confusion matrix is a performance measurement for turnover prediction where output are two classes (stay/leave). It represents 4 combinations of actual vs. predicted values. Let’s define them as follows:' )
-        overview_col2.write('* TP: True Positive:  Headcount of employees which the model predicted left and they actually left.',unsafe_allow_html=True)
-        overview_col2.write('* TN: True Negative:  Headcount of employees which the model predicted stayed and they actually stayed.',unsafe_allow_html=True)
-        overview_col2.write('* TP: False Positive:  Headcount of employees which the model predicted left but they actually stayed.',unsafe_allow_html=True)
-        overview_col2.write('* TP: False Negative:  Headcount of employees which the model predicted stayed but they actually left.',unsafe_allow_html=True)
-        
-        overview_col3.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Observation</h1>", unsafe_allow_html=True)
-        overview_col3.write('Out of total xx headcounts' )
-        overview_col3.write('* TP: True Positive:  XX employees are predicted left and they actually left.',unsafe_allow_html=True)
-        overview_col3.write('* TN: True Negative:  XX employees are predicted stayed and they actually stayed.',unsafe_allow_html=True)
-        overview_col3.write('* TP: False Positive:  XX employees are predicted left but they actually stayed.',unsafe_allow_html=True)
-        overview_col3.write('* TP: False Negative:  XX employees are predicted stayed but they actually left.',unsafe_allow_html=True)
-        
-        
-        model_container.markdown("---")
-        
-        model_container.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 150%; color: #3498DB; opacity: 0.7'>Model Accuracy</h1>", unsafe_allow_html=True)
-        acc_col1, acc_col2, acc_col3 = model_container.columns((1, 1.5, 1.5))
-        
-        acc = 0.9
-        acc_baseline = 0.85
-        with acc_col1:
-            acc_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Accuracy</h1>", unsafe_allow_html=True)
-            acc_options = get_accuracy_chart(acc,acc_baseline)
-            st_echarts(options=acc_options,height="200px")
-        
-        acc_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>What is it?</h1>", unsafe_allow_html=True)
-        acc_col2.write("Model accuracy measures how well a model explain turnover behavior. Higher accuracy means greater confidence of the findings are true and predictions are correct. Model accuracy is further compared with baseline accuracy and it must be higher than baseline to be considered useful on a problem.") 
-# Accuracy is defined as the percentage of correct predicted turnovers as % of headcount. It is calculated by dividing the number of correct predicted turnover headcount by the number of total headcount")
-        # overview_col2.latex(r'''Accuracy = left(\frac{Number of correct predicted turnover}{Total Headcount}\right)''')
-        # overview_col2.latex(r''' Accuracy = \left(\frac{A}{B}\right)''')
-        acc_col2.write('Model Accuracy = A/B; where A = Number of correct predictions, B = Number of predictions')
-        acc_col2.write('Baseline Accuracy = C/B; where C = Number of correct predictions if we assume everyone stayed, B = Number of predictions')
-        
-        # overview_col2.latex(r''' Accuracy =a \left(\frac{1-r^{n}}{1-r}\right)''')
-        
-        acc_col3.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Observation</h1>", unsafe_allow_html=True)        
-        acc_col3.write('Out of 700 predictions in the model, 100 employees are correctly predicted as terminated and 500 employees are correctly predicted to stay. The total number of stayed employees is 400. And hence:' +'\n'+'* Model Accuracy = (100+500)/700'+'\n'+'* Baseline Accuracy = 400/700'+'\n'+'As the model accuracy exceed baseline, the model is effective to explain turnover causes and make valid predictions',unsafe_allow_html=True)
-        model_container.markdown("---")
-
-    elif select == 'Prediction':
-        pred_place = st.empty()
-        pred_container = pred_place.container()
-        
-        pred_container.title('Turnover Risk Prediction')
-        pred_container.markdown("---")
-        
-        pred_col1, pred_col2, pred_col3 = pred_container.columns((1, 5, 0.5))
-        
-        pred_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Filter data</h1>", unsafe_allow_html=True)    
-        pred_col1.write('Update the data and click submit')
-        
-        pred_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Filter data</h1>", unsafe_allow_html=True)    
-        pred_col2.write('Update the data and click submit')
-        
-        
     elif select == 'Log Out':
         clear_state()
         st.experimental_rerun()
