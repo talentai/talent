@@ -263,7 +263,7 @@ if st.session_state['login_status'] == 'No':
     if st.session_state['menu_message'] is not None:
         login_container.info(st.session_state['menu_message'])
     login_container.title("Welcome to TalentX")
-    login_col1, login_col2, login_col3 = login_container.columns([1,1,0.2])
+    login_col1, login_col2, login_col3 = login_container.columns([1,1,0.5])
     login_col1.image('Image/login3.jpg',use_column_width='auto')
     choice = login_col2.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state) 
     # st.write(choice)
@@ -343,7 +343,7 @@ if st.session_state['login_status'] == 'Yes':
         setup_place = st.empty()
         setup_container = setup_place.container()
         
-        setup_col1, setup_col2 = setup_container.columns((2, 1))
+        setup_col1, setup_col2, setup_col3 = setup_container.columns((2, 1, 0.2))
         setup_col1.title('TalentX')
         setup_col1.write('TalentX is an AI-driven platform to analyzing employee turnover to identify why people leave and boost retention. By analying termination data during 12 month period, TalentX can identify root cause of turnover, answer what if questions, and predict individual turnover risk for next 12 month.')
         setup_col2.image('Image/setup1.jpg',use_column_width='auto')
@@ -353,19 +353,22 @@ if st.session_state['login_status'] == 'Yes':
         # setup_container.markdown("🎯 Let's Get Started")
         
     # Step 1: Download instruction and template
-        step1_col1, step1_col2 = setup_container.columns((1, 5))
+        step1_col1, step1_col2, step1_col3, step1_col4 = setup_container.columns((1, 0.2, 4, 4))
         step1_col1.image('Image/step1.jpg',use_column_width='auto')
         # step1_col1.image('Image/step1.jpg',width=200)
-        step1_col2.markdown("🖱️ 'Save link as...'")
-        step1_col2.markdown(get_binary_file_downloader_html(file_path, 'Instruction and Template'), unsafe_allow_html=True)
+        step1_col3.markdown("Please download the data template, review input instructions, and update your data.")
+        step1_col3.markdown("🖱️ 'Save link as...'")
+        step1_col3.markdown(get_binary_file_downloader_html(file_path, 'Instruction and Template'), unsafe_allow_html=True)
+        
         setup_container.markdown("""---""")
         
     # Step 2: Submit data
         # exclude_list = ['login_status','user','username','email','menu_message','data']
         # step2_col1, step2_col2 = setup_container.columns((1, 5))
-        step2_col1, step2_col2 = setup_container.columns((1, 5))
+        step2_col1, step2_col2, step2_col2, step2_col4 = setup_container.columns((1, 0.2, 4, 4))
         exclude_list = ['login_status','user','username','email','menu_message']
         step2_col1.image('Image/step2.jpg',use_column_width='auto')
+        step2_col2.markdown("Please upload your data in Excel format .xlsx")
         uploaded_file = step2_col2.file_uploader('', type=['xlsx'], on_change=clear_state_withexc,args=[exclude_list])
         setup_container.write(st.session_state['choose_fullrun_index'])
         df = None
