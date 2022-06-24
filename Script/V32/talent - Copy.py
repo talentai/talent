@@ -32,27 +32,12 @@ from io import BytesIO
 
 from datetime import datetime
 
-# Load support classes/functions/configuration
-from config import Config
-from classes import DataLoader, DataValidator, Transformer
-from streamlit_function import *
-from streamlit_echarts import st_echarts
-from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, GridOptionsBuilder, JsCode
-
-import logging
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-config = dict(Config.__dict__)
-
-print(config)
-
 # Streamlit CSS Style Setup
 st.set_page_config(layout="wide")
 
 # Streamlit - format buttons
 st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
-st.markdown("""
+m = st.markdown("""
     <style>
     div.stButton > button:first-child {box-shadow: 0px 0px 0px 2px #3498DB;background-color:#3498DB;border-radius:5px;border:2px solid #3498DB;display:inline-block;cursor:pointer;color:#ffffff;font-family:Arial;font-size:13px;padding:8px 25px;text-decoration:none;
     &:active {position:relative;top:1px;}}
@@ -118,16 +103,9 @@ def get_binary_file_downloader_html(bin_file, file_label='File'):
 def get_excel_file_downloader_html(data, file_label='File'):
     output = BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    data.to_excel(writer, index=False, sheet_name='Submission')
+    data.to_excel(writer, index=False, sheet_name='Sheet1')
     workbook = writer.book
-    worksheet = writer.sheets['Submission']
-    
-    for column in data:
-            column_width = max(data[column].astype(str).map(len).max(), len(column))+3
-            col_idx = data.columns.get_loc(column)
-            writer.sheets['Submission'].set_column(col_idx, col_idx, column_width)
-    cell_format = workbook.add_format()  
-    
+    worksheet = writer.sheets['Sheet1']
     writer.save()
     processed_data = output.getvalue()
     bin_str = base64.b64encode(processed_data).decode()
@@ -151,34 +129,8 @@ def clear_state_withexc(exclude_list):
 def choose_run_change():
     st.session_state['choose_fullrun_index'] = 1 - st.session_state['choose_fullrun_index']
 
-def feature_1_change(feature_1_change):
-    # feature_1_position = col_list.index(feature_1_change)
-    # st.session_state['feature_1_index'] = feature_1_position
-    # print('look at position')
-    # print(feature_1_position)
-    print("F1 change running")
-    now = datetime.now()
-    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
-    feature_1_save = {'F1' : feature_1_change,
-                    'Timestamp' : dt_string} 
-    db.child(user['localId']).child("Feature").child("Feature_1").push(feature_1_save)
-    
-# def feature_1_index_change(feature_1_change,col_list):
-#     # feature_1_position = col_list.index(feature_1_change)
-#     # st.session_state['feature_1_index'] = feature_1_position
-#     # print('look at position')
-#     # print(feature_1_position)
-#     now = datetime.now()
-#     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
-#     feature_1_save = {'feature_1' : dict(feature_1_change),
-#                     'Timestamp' : dt_string} 
-#     db.child(user['localId']).child("Feature").child("Feature_1").push(feature_1_save)
-    
-def cut_1_text_default_change(cut_1):
-    st.session_state['cut_1_text_default'] = cut_1
-
-def cut_1_numeric_default_change(cut_1):
-    st.session_state['cut_1_range'] = [cut_1.min(),cui_1.max()]
+def feature_1_index_change(feature_1_change,col_list):
+    st.session_state['feature_1_index'] = col_list.index(feature_1_change)
     
 # Streamlit initialize session state to track login, upload status, data, and others ------------------------------------------------ 
 if 'login_time' not in st.session_state:
@@ -192,9 +144,6 @@ if 'login_status' not in st.session_state:
 
 if 'data' not in st.session_state:
     st.session_state['data'] = None
-
-if 'data_loader' not in st.session_state:
-    st.session_state['data_loader'] = None
 
 if 'data_type' not in st.session_state:
     st.session_state['data_type'] = None
@@ -229,25 +178,8 @@ if 'feature_1' not in st.session_state:
 if 'feature_1_index' not in st.session_state:
     st.session_state['feature_1_index'] = 0
     
-# if 'feature_1_select_save' not in st.session_state:
-#     st.session_state['feature_1_select_save'] = None
-    
-if 'feature_1_select' not in st.session_state:
-    st.session_state['feature_1_select'] = None
-
-if 'cut_1_text' not in st.session_state:
-    st.session_state['cut_1_text'] = None
-    
-if 'cut_1_text_default' not in st.session_state:
-    st.session_state['cut_1_text_default'] = None
-    
-if 'cut_1_numeric' not in st.session_state:
-    st.session_state['cut_1_numeric'] = None
-    
-if 'cut_1_range' not in st.session_state:
-    st.session_state['cut_1_range'] = None
-    
 # Streamlit -----------------------------------------------------------------------------------------------------------------------
+
 # Authentication -----------------------------------------------------------------------------------------------------------------------
 # choice_place = st.empty()
 # choice_container = choice_place.container()
@@ -263,7 +195,7 @@ if st.session_state['login_status'] == 'No':
     if st.session_state['menu_message'] is not None:
         login_container.info(st.session_state['menu_message'])
     login_container.title("Welcome to TalentX")
-    login_col1, login_col2, login_col3 = login_container.columns([1,1,0.5])
+    login_col1, login_col2, login_col3 = login_container.columns([1,1,0.2])
     login_col1.image('Image/login3.jpg',use_column_width='auto')
     choice = login_col2.selectbox('login/Signup', ['Login', 'Sign up'],index=0, on_change=clear_state) 
     # st.write(choice)
@@ -331,7 +263,7 @@ if st.session_state['login_status'] == 'Yes':
     menu = menu_holder.container()
     
     with menu:
-        select = option_menu(username, ["Setup", "Insight", "Prediction", 'Model Performance','Log Out','Reset Password'], 
+        select = option_menu(username, ["Setup", "Insight", "Prediction", 'Log Out','Reset Password'], 
         icons=['house', 'bar-chart-line', "list-task", 'gear','arrow-clockwise'], 
         menu_icon="person", default_index=0, orientation="vertical",
         styles={
@@ -343,7 +275,7 @@ if st.session_state['login_status'] == 'Yes':
         setup_place = st.empty()
         setup_container = setup_place.container()
         
-        setup_col1, setup_col2, setup_col3 = setup_container.columns((2, 1, 0.2))
+        setup_col1, setup_col2 = setup_container.columns((2, 1))
         setup_col1.title('TalentX')
         setup_col1.write('TalentX is an AI-driven platform to analyzing employee turnover to identify why people leave and boost retention. By analying termination data during 12 month period, TalentX can identify root cause of turnover, answer what if questions, and predict individual turnover risk for next 12 month.')
         setup_col2.image('Image/setup1.jpg',use_column_width='auto')
@@ -353,89 +285,71 @@ if st.session_state['login_status'] == 'Yes':
         # setup_container.markdown("🎯 Let's Get Started")
         
     # Step 1: Download instruction and template
-        step1_col1, step1_col2, step1_col3, step1_col4 = setup_container.columns((1, 0.2, 4, 4))
+        step1_col1, step1_col2 = setup_container.columns((1, 5))
         step1_col1.image('Image/step1.jpg',use_column_width='auto')
         # step1_col1.image('Image/step1.jpg',width=200)
-        step1_col3.markdown("Please download the data template, review input instructions, and update your data.")
-        step1_col3.markdown("🖱️ 'Save link as...'")
-        step1_col3.markdown(get_binary_file_downloader_html(file_path, 'Instruction and Template'), unsafe_allow_html=True)
+        step1_col2.markdown("🖱️ 'Save link as...'")
+        step1_col2.markdown(get_binary_file_downloader_html(file_path, 'Instruction and Template'), unsafe_allow_html=True)
         setup_container.markdown("""---""")
         
     # Step 2: Submit data
         # exclude_list = ['login_status','user','username','email','menu_message','data']
         # step2_col1, step2_col2 = setup_container.columns((1, 5))
-        step2_col1, step2_col2, step2_col2, step2_col4 = setup_container.columns((1, 0.2, 4, 4))
+        step2_col1, step2_col2 = setup_container.columns((1, 5))
         exclude_list = ['login_status','user','username','email','menu_message']
         step2_col1.image('Image/step2.jpg',use_column_width='auto')
-        step2_col2.markdown("Please upload your data in Excel format .xlsx")
         uploaded_file = step2_col2.file_uploader('', type=['xlsx'], on_change=clear_state_withexc,args=[exclude_list])
-        # setup_container.write(st.session_state['choose_fullrun_index'])
+        setup_container.write(st.session_state['choose_fullrun_index'])
         df = None
         if (uploaded_file is not None) and (st.session_state['upload_status'] == "No"):
-            df = pd.read_excel(uploaded_file,sheet_name="Submission", header=[0, 1])
-        # call dataloader class
-            data_loader = DataLoader(df)
+            df = pd.read_excel(uploaded_file,sheet_name="Submission")
+            df_type = df.iloc[0].tolist()
+            # df_type.columns=['col_type']
+            df = df.iloc[1:,:]
+            # df_type.to_excel('type.xlsx')
+            df.to_excel('df.xlsx')
+            
+            # df['price_update'] = df['price']*100
+            print(df_type)
             st.session_state['data'] = df
-            st.session_state['data_loader'] = data_loader
+            st.session_state['data_type'] = df_type
             st.session_state['upload_status'] = "Yes"
             
         elif st.session_state['upload_status'] == "Yes":
-        # read dataloader from memory
             df = st.session_state['data']
-            data_loader = st.session_state['data_loader']
-        
+            df_type = st.session_state['data_type']
         setup_container.markdown("""---""")
-        if df is not None:
-    
-    # Step 3: Data Validation
-        # call data validator class
-            data_validator = DataValidator(config, data_loader)
-            validation_results, data, data_ref = data_validator.apply_validation()
-            
-            setup_container.write(validation_results)
-            data.to_excel('data.xlsx')
-            
-            df_type_text = data_loader.fieldTypeDict['text']
-            df_type_num = data_loader.fieldTypeDict['numeric']
-            df_type_date = data_loader.fieldTypeDict['date']
-            
-            df = data_loader.data
-            df_col_name = data_loader.column_name
         
-        # Output validation result in streamlit
+        if df is not None:
             step3_col1, step3_col2 = setup_container.columns((1, 5))
             # Yang - function validation(df)
             # Call a function to pass df and return with a output dictionary
-            output = {'validation':{'Submitted Entry':1470, 'Processed Entry':1400,'Invalid Entry':70, 
-                      'Invalid Data': df.tail(70), 'Processed Data': df.head(1410)     
+            output = {'validation':{'Submitted Entry':1470, 'Processed Entry':1400, 'Imputed Entry':10 ,'Invalid Entry':60, 
+                      'Invalid Data': df.tail(60), 'Processed Data': df.head(1410),
+                      'All Valid Columns':df.columns.tolist(), 'All Valid Columns and Types':dict(zip(df.columns.tolist(), df_type))        
                      }}
             df_clean = output['validation']['Processed Data']
             # df_col_list = output['validation']['All Valid Columns'] 
-            # df_col_dict = output['validation']['All Valid Columns and Types']
-            # df_col_list = list(df_col_dict.keys())
-
+            df_col_dict = output['validation']['All Valid Columns and Types']
+            df_col_list = df_col_dict.keys()
+            
             # End of Yang
+            
+    # Step 3: Data Validation
             # step3_col2.write('Step 3: Validate Data')
             step3_col1, validation_col1,validation_col2,validation_col3,validation_col4, validation_col5 = setup_container.columns((1, 1, 1, 1, 1, 1))
             step3_col1.image('Image/step3.jpg',use_column_width='auto')
-            validation_col2.metric('Submitted Entry',output['validation']['Submitted Entry'])
-            validation_col3.metric('Processed Entry',output['validation']['Processed Entry'])
+            validation_col1.metric('Submitted Entry',output['validation']['Submitted Entry'])
+            validation_col2.metric('Processed Entry',output['validation']['Processed Entry'])
+            validation_col3.metric('Imputed Entry',output['validation']['Imputed Entry'])
             validation_col4.metric('Invalid Entry',output['validation']['Invalid Entry'])
             df_validation = output['validation']['Invalid Data']
             if operator.not_(df_validation.empty):
                 validation_col5.markdown(get_excel_file_downloader_html(df_validation, 'Invalid Entry.xlsx'), unsafe_allow_html=True)
                 validation_col5.markdown("🖱️ 'Save link as...'")
             setup_container.markdown("""---""")
-    
-    # Step 4: Data Transformation (Calculate Tenure and Span of control)
-            step4_col1, step4_col2, step4_col3, step4_col4 = setup_container.columns((1, 2, 2, 1))
-            step4_col1.image('Image/step3.jpg',use_column_width='auto')
-            choose_tenure = step4_col2.checkbox('Calculate "Tenure" from hire dates')
-            choose_span = step4_col3.checkbox('Calculate manager "Span of Control" from manager ID')
-        
-            asdf
             
-    # Step 5: Data Cuts
+    # Step 4: Data Validation
             step4_col1, step4_col2, step4_col3, step4_col4, step4_col5 = setup_container.columns((1, 2, 1, 1, 1))
             step4_col1.image('Image/step3.jpg',use_column_width='auto')
             choose_run = step4_col2.radio('Would you like to analyse entire population?',('Yes', 'No'), index = st.session_state['choose_fullrun_index'], on_change = choose_run_change)
@@ -451,27 +365,35 @@ if st.session_state['login_status'] == 'Yes':
             df_final = copy.deepcopy(df_clean)
             if st.session_state['choose_fullrun'] == 'No':
                 step4a_col1, step4a_col2, step4a_col3 = setup_container.columns((1, 1, 1))    
-                feature_1 = step4a_col1.selectbox('1st Cut',output['validation']['All Valid Columns'])
-                st.session_state['feature_1'] = feature_1                
+                
+            #1st cut
+                feature_1 = step4a_col1.selectbox('1st Cut',output['validation']['All Valid Columns'], 
+                            index = st.session_state['feature_1_index'], on_change = feature_1_index_change, args = (feature_1,df_col_list) )
+                    st.session_state['feature_1'] = feature_1
+                    
                 if df_col_dict[feature_1] == 'text':
-                    cut_1 = step4a_col1.multiselect(feature_1,set(df_final[feature_1]), key='choose_cut1')
-                    st.session_state['cut_1_text'] = cut_1
+                    cut_1 = step4a_col1.multiselect(st.session_state['feature_1'],set(df_final[feature_1]),key='choose_cut1')
+                    setup_container.write(cut_1)
                     df_final = df_final[df_final[feature_1].isin(cut_1)]
                 elif df_col_dict[feature_1] == 'numeric':
                     range_min = df_final[feature_1].min()
                     range_max = df_final[feature_1].max()
-                    cut_1 = step4a_col1.slider('Select a range of values',range_min,range_max,(range_min,range_max))
-                    st.session_state['cut_1_numeric'] = cut_1
+                    cut_1 = step4a_col1.slider('Select a range of values',range_min,range_max, (range_min, range_max))
                     df_final = df_final[(df_final[feature_1]>=min(cut_1)) & (df_final[feature_1]<=max(cut_1))]
             #2nd cut
                 if len(cut_1)>0:
+                    # cut_1_message = feature_1+' includes '+', '.join(cut_1)
+                    # setup_container.info('Run a subset where '+cut_1_message)
+                    # df_temp_1.to_excel('temp1.xlsx')
                     feature_2 = step4a_col2.selectbox('2nd Cut',output['validation']['All Valid Columns'])
+                    # setup_container.write(set(df_final[feature_2]))
                     cut_2 = step4a_col2.multiselect(feature_2,set(df_final[feature_2]),key='choose_cut2')
                     df_final = df_final[df_final[feature_2].isin(cut_2)]
             #3rd cut    
                     if len(cut_2)>0:
                         # cut_2_message = feature_2+' includes '+', '.join(cut_2)
                         # setup_container.info('Run a subset where '+cut_1_message+' and '+cut_2_message)
+                        
                         df_temp_2 = df_clean[df_clean[feature_2].isin(cut_2)]
                         # df_temp_1.to_excel('temp1.xlsx')
                         feature_3 = step4a_col3.selectbox('3rd Cut',output['validation']['All Valid Columns'])
@@ -594,193 +516,27 @@ if st.session_state['login_status'] == 'Yes':
         insight_place = st.empty()
         insight_container = insight_place.container()
         
-        insight_container.title('Turnover Insights')
-        overview_col1, overview_col2, overview_col3, overview_col4 = insight_container.columns((1, 1, 1, 1))
-        overview_col1.metric(label="Headcount", value="700")
-        overview_col2.metric(label="Leaver", value="100")
-        overview_col3.metric(label="Turnover Rate", value="20%")
-        overview_col4.write("this is a cut from xxx")
-        insight_container.markdown("---")
+        
+        with insight_container.form("my_form"):
+            cal_start = st.number_input('Insert a number')
+            cal_add = st.number_input('Add a number')
+            cal_submit = st.form_submit_button("Submit")
+        if cal_submit:
+            cal_result = cal_start+cal_add
+            st.write('your final number is: '+str(cal_result))
+            st.session_state['cal_result'] = cal_result
+        
+        butt_save = insight_container.button('Save result')
+        if butt_save:
+            cal_result = st.session_state['cal_result']
+            now = datetime.now()
+            dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
+            cal_save = {'Calculation' : cal_result,
+                    'Timestamp' : dt_string} 
 
-        # Model Accuracy---------------------------------------------------------------------------------------------------------
+            db.child(user['localId']).child("Calculation").push(cal_save)
+            st.balloons()
 
-        # SHAP and PDP Insight ---------------------------------------------------------------------------------------------------------
-        insight_container.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 150%; color: #3498DB; opacity: 0.7'>Tunrover Drivers</h1>", unsafe_allow_html=True)
-        driver_col1, driver_col2, driver_col3 = insight_container.columns((1, 1.5, 1.5)) 
-        driver_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Driver Impact</h1>", unsafe_allow_html=True)
-        driver_col1.write("placeholder for a bar chart here, value is the SHAP value, red indicate it is negative (drive turnover down), green indicate it is positive (driver turnover up)")
-        driver_col1.image('Image/importance.png',use_column_width='auto')
-        
-        driver_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>What is it?</h1>", unsafe_allow_html=True)
-        driver_col2.write("Driver importance measures xxxxx.")
-        driver_col3.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Observation</h1>", unsafe_allow_html=True)
-        driver_col3.write("Your top 3 drivers are xx xx xx, please select a driver to see in detail how it impact the turnover risk/rate")       
-        insight_container.markdown("---")
-
-        # Driver Drill Down ---------------------------------------------------------------------------------------------------------
-        pdp_col1, pdp_col2, pdp_col3 = insight_container.columns((1, 1.5, 1.5))         
-        pdp_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Driver Deepdive</h1>", unsafe_allow_html=True)
-        pdp_select = pdp_col1.selectbox( 'Select a driver', ('Compensation', 'Equity', 'Tenure'))
-        pdp_col1.markdown('You selected: ' + pdp_select)
-        
-        pdp_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Current Status</h1>", unsafe_allow_html=True)
-        pdp_col2.markdown('if selection is numeric, show: average, median, min, and max, below show a seaborn or matplot distribution')
-        pdp_col2.image('Image/distribution.png',use_column_width='auto')
-        
-        pdp_col2.markdown('if selection is text, show: number of categtory, below show a donut chart - category by headcount')
-        pdp_col2.image('Image/donut.png',use_column_width='auto')
-        
-        pdp_col3.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Turnover Impact</h1>", unsafe_allow_html=True)
-        pdp_col3.markdown('PDP plot here, include a color line to indicate the current average for numeric selection')
-        pdp_col3.image('Image/pdp.png',use_column_width='auto')
-        insight_container.markdown("---")
-        
-        # Driver Drill Down ---------------------------------------------------------------------------------------------------------
-        sim_col1, sim_col2, sim_col3 = insight_container.columns((1, 1.5, 0.1))         
-        # pdp_select = sim_col1.selectbox( 'Select a driver', ('Compensation', 'Equity', 'Tenure'))
-        sim_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Driver Simulation</h1>", unsafe_allow_html=True)
-        sim_col1.markdown('Simulation by changing the value or proportion of the driver')
-        sim_col1.markdown('if selection is numeric, show:')
-        num_select = sim_col1.slider('Select a new value', min_value = 0, max_value = 130, value=25)
-        sim_col1.write('Current value is 25, '+'Simulated value is '+str(num_select))
-        
-        sim_col1.markdown('if selection is text, show: percentage of each class in the category')
-        
-        df_template = pd.DataFrame(
-            [['Yes','60','70'],['No','40','30']],
-            # index=['Yes','No'],
-            columns=['Category','Current','Simulation'])
-        
-        text_form = sim_col1.form("Text Form")
-        js = JsCode("""
-                    function(e) {
-                        let api = e.api;
-                        let rowIndex = e.rowIndex;
-                        let col = e.column.colId;
-                        let rowNode = api.getDisplayedRowAtIndex(rowIndex);
-                        api.flashCells({
-                          rowNodes: [rowNode],
-                          columns: [col],
-                          flashDelay: 10000000000
-                        });
-                    };
-                    """)
-        with text_form:
-            text_form.write('Promotion')
-            gb = GridOptionsBuilder.from_dataframe(df_template)
-            # st.write(gb)
-            # gb.configure_pagination()
-            gb.configure_auto_height(autoHeight=True)
-            gb.configure_grid_options(onCellValueChanged=js)
-            gridOptions = gb.build()
-            gridOptions['defaultColDef']['editable']=True
-            
-            # st.write(gridOptions['defaultColDef']['editable'])
-            # st.write(gridOptions)
-            
-            response = AgGrid(df_template, editable=True, fit_columns_on_grid_load=True, gridOptions=gridOptions,allow_unsafe_jscode=True, reload_data=False)
-            submitted_text_form = text_form.form_submit_button()
-
-        sim_col1.write(response['data'])
-        
-        sim_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Impact Simulation</h1>", unsafe_allow_html=True)
-        sim_col2.metric("Current Turnover Rate", "25%")
-        sim_col2.metric("Simulate Turnover Rate", "20%", "-5%")
-        sim_col2.markdown('By changing turnover driver X, the turnover rate is expected to increase/decrease by y%')
-#         sim_col2.markdown('if selection is text, show: number of categtory, below show a donut chart - category by headcount')
-        
-        # sim_col3.markdown('PDP plot here, include a color line to indicate the current average for numeric selection')
-        # sim_col3.image('Image/pdp.png',use_column_width='auto')
-        
-        
-        
-#         with insight_container.form("my_form"):
-#             cal_start = st.number_input('Insert a number')
-#             cal_add = st.number_input('Add a number')
-#             cal_submit = st.form_submit_button("Submit")
-#         if cal_submit:
-#             cal_result = cal_start+cal_add
-#             st.write('your final number is: '+str(cal_result))
-#             st.session_state['cal_result'] = cal_result
-        
-#         butt_save = insight_container.button('Save result')
-#         if butt_save:
-#             cal_result = st.session_state['cal_result']
-#             now = datetime.now()
-#             dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
-#             cal_save = {'Calculation' : cal_result,
-#                     'Timestamp' : dt_string} 
-
-#             db.child(user['localId']).child("Calculation").push(cal_save)
-#             st.balloons()
-
-    elif select == 'Model Performance':    
-        model_place = st.empty()
-        model_container = model_place.container()
-        
-        model_container.title('Model Performance')
-        model_container.markdown("---")
-        model_container.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 150%; color: #3498DB; opacity: 0.7'>Prediction Summary</h1>", unsafe_allow_html=True)
-        overview_col1, overview_col2, overview_col3 = model_container.columns((1, 1.5, 1.5))
-        overview_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Overview</h1>", unsafe_allow_html=True)
-        overview_col1.image('Image/matrix.png',use_column_width='auto')
-        overview_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>What is it?</h1>", unsafe_allow_html=True)
-        overview_col2.write('Confusion matrix is a performance measurement for turnover prediction where output are two classes (stay/leave). It represents 4 combinations of actual vs. predicted values. Let’s define them as follows:' )
-        overview_col2.write('* TP: True Positive:  Headcount of employees which the model predicted left and they actually left.',unsafe_allow_html=True)
-        overview_col2.write('* TN: True Negative:  Headcount of employees which the model predicted stayed and they actually stayed.',unsafe_allow_html=True)
-        overview_col2.write('* TP: False Positive:  Headcount of employees which the model predicted left but they actually stayed.',unsafe_allow_html=True)
-        overview_col2.write('* TP: False Negative:  Headcount of employees which the model predicted stayed but they actually left.',unsafe_allow_html=True)
-        
-        overview_col3.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Observation</h1>", unsafe_allow_html=True)
-        overview_col3.write('Out of total xx headcounts' )
-        overview_col3.write('* TP: True Positive:  XX employees are predicted left and they actually left.',unsafe_allow_html=True)
-        overview_col3.write('* TN: True Negative:  XX employees are predicted stayed and they actually stayed.',unsafe_allow_html=True)
-        overview_col3.write('* TP: False Positive:  XX employees are predicted left but they actually stayed.',unsafe_allow_html=True)
-        overview_col3.write('* TP: False Negative:  XX employees are predicted stayed but they actually left.',unsafe_allow_html=True)
-        
-        
-        model_container.markdown("---")
-        
-        model_container.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 150%; color: #3498DB; opacity: 0.7'>Model Accuracy</h1>", unsafe_allow_html=True)
-        acc_col1, acc_col2, acc_col3 = model_container.columns((1, 1.5, 1.5))
-        
-        acc = 0.9
-        acc_baseline = 0.85
-        with acc_col1:
-            acc_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Accuracy</h1>", unsafe_allow_html=True)
-            acc_options = get_accuracy_chart(acc,acc_baseline)
-            st_echarts(options=acc_options,height="200px")
-        
-        acc_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>What is it?</h1>", unsafe_allow_html=True)
-        acc_col2.write("Model accuracy measures how well a model explain turnover behavior. Higher accuracy means greater confidence of the findings are true and predictions are correct. Model accuracy is further compared with baseline accuracy and it must be higher than baseline to be considered useful on a problem.") 
-# Accuracy is defined as the percentage of correct predicted turnovers as % of headcount. It is calculated by dividing the number of correct predicted turnover headcount by the number of total headcount")
-        # overview_col2.latex(r'''Accuracy = left(\frac{Number of correct predicted turnover}{Total Headcount}\right)''')
-        # overview_col2.latex(r''' Accuracy = \left(\frac{A}{B}\right)''')
-        acc_col2.write('Model Accuracy = A/B; where A = Number of correct predictions, B = Number of predictions')
-        acc_col2.write('Baseline Accuracy = C/B; where C = Number of correct predictions if we assume everyone stayed, B = Number of predictions')
-        
-        # overview_col2.latex(r''' Accuracy =a \left(\frac{1-r^{n}}{1-r}\right)''')
-        
-        acc_col3.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Observation</h1>", unsafe_allow_html=True)        
-        acc_col3.write('Out of 700 predictions in the model, 100 employees are correctly predicted as terminated and 500 employees are correctly predicted to stay. The total number of stayed employees is 400. And hence:' +'\n'+'* Model Accuracy = (100+500)/700'+'\n'+'* Baseline Accuracy = 400/700'+'\n'+'As the model accuracy exceed baseline, the model is effective to explain turnover causes and make valid predictions',unsafe_allow_html=True)
-        model_container.markdown("---")
-
-    elif select == 'Prediction':
-        pred_place = st.empty()
-        pred_container = pred_place.container()
-        
-        pred_container.title('Turnover Risk Prediction')
-        pred_container.markdown("---")
-        
-        pred_col1, pred_col2, pred_col3 = pred_container.columns((1, 5, 0.5))
-        
-        pred_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Filter data</h1>", unsafe_allow_html=True)    
-        pred_col1.write('Update the data and click submit')
-        
-        pred_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Filter data</h1>", unsafe_allow_html=True)    
-        pred_col2.write('Update the data and click submit')
-        
-        
     elif select == 'Log Out':
         clear_state()
         st.experimental_rerun()

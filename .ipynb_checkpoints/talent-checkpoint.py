@@ -359,7 +359,6 @@ if st.session_state['login_status'] == 'Yes':
         step1_col3.markdown("Please download the data template, review input instructions, and update your data.")
         step1_col3.markdown("🖱️ 'Save link as...'")
         step1_col3.markdown(get_binary_file_downloader_html(file_path, 'Instruction and Template'), unsafe_allow_html=True)
-        
         setup_container.markdown("""---""")
         
     # Step 2: Submit data
@@ -370,7 +369,7 @@ if st.session_state['login_status'] == 'Yes':
         step2_col1.image('Image/step2.jpg',use_column_width='auto')
         step2_col2.markdown("Please upload your data in Excel format .xlsx")
         uploaded_file = step2_col2.file_uploader('', type=['xlsx'], on_change=clear_state_withexc,args=[exclude_list])
-        setup_container.write(st.session_state['choose_fullrun_index'])
+        # setup_container.write(st.session_state['choose_fullrun_index'])
         df = None
         if (uploaded_file is not None) and (st.session_state['upload_status'] == "No"):
             df = pd.read_excel(uploaded_file,sheet_name="Submission", header=[0, 1])
