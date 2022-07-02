@@ -259,6 +259,9 @@ if 'cut_1_range' not in st.session_state:
 if 'config' not in st.session_state:
     st.session_state['config'] = None 
     
+if 'df_final' not in st.session_state:
+    st.session_state['df_final'] = None 
+    
 # Streamlit -----------------------------------------------------------------------------------------------------------------------
 # Authentication -----------------------------------------------------------------------------------------------------------------------
 # choice_place = st.empty()
@@ -402,7 +405,7 @@ if st.session_state['login_status'] == 'Yes':
             
         elif st.session_state['upload_status'] == "Yes":
         # read dataloader from memory
-            st.write('read file from memory')
+            # st.write('read file from memory')
             df = st.session_state['data_submit']
             data_loader = st.session_state['data_loader']
             config = st.session_state['config']
@@ -513,11 +516,13 @@ if st.session_state['login_status'] == 'Yes':
     # Step 5a: Start - Run a segment of population - Allow user to choose up to 3 filters (relationship is A and B and C)
     # If user select yes, use the entire dataset
             df_final = copy.deepcopy(df_clean)
+            
+        
             if st.session_state['choose_fullrun'] == 'No':
                 # cut_col1a.write('Please select a data segment')
                 
                 step5a_col1, cut_col0a, cut_col1a, cut_col2a, cut_col3a, cut_col4a = setup_container.columns((1, 0.2, 2, 2, 2, 2))    
-                cut_col1a.write('Please select data segments, click submit when ready')
+                # cut_col1a.write('Please select data segments, click submit when ready')
                 
                 list_cut1 = df_clean.columns.tolist()
                 feature_1 = cut_col1a.selectbox('1st Cut',list_cut1)
@@ -565,6 +570,16 @@ if st.session_state['login_status'] == 'Yes':
                             # cut_3_message = feature_3+' includes '+', '.join(cut_3)
                             # setup_container.info('Run a subset where '+cut_1_message+' and '+cut_2_message +' and '+cut_3_message)
     # Step 5a. End - output a user selected defined dataset
+            setup_container.markdown("""---""") 
+    
+    # Step 6. Start Analysis
+            step6_col1, run_col0, run_col1,run_col2 = setup_container.columns((1, 0.2, 4, 4))
+            step6_col1.image('Image/step6.jpg',use_column_width='auto')
+        
+            run_button = run_col1.button('Start Analysis')
+            st.session_state['df_final'] = df_final
+            df_final = st.session_state['df_final']
+            
             setup_container.markdown("""---""")
             df_final.to_excel('final_data.xlsx')
             # st.write(st.session_state)
@@ -583,6 +598,7 @@ if st.session_state['login_status'] == 'Yes':
         overview_col2.metric(label="Leaver", value="100")
         overview_col3.metric(label="Turnover Rate", value="20%")
         overview_col4.write("this is a cut from xxx")
+        insight_container.warning('1. Headcount size is less than 20, A minimum of 30 observations is recommended to conduct any significant statistics.'+'\n'+'2. Turnover rate is less than 1%.')
         insight_container.markdown("---")
 
         # Model Accuracy---------------------------------------------------------------------------------------------------------
@@ -749,6 +765,9 @@ if st.session_state['login_status'] == 'Yes':
         model_container.markdown("---")
 
     elif select == 'Prediction':
+        
+        df_final = st.session_state['df_final']
+        
         pred_place = st.empty()
         pred_container = pred_place.container()
         
@@ -757,12 +776,65 @@ if st.session_state['login_status'] == 'Yes':
         
         pred_col1, pred_col2, pred_col3 = pred_container.columns((1, 5, 0.5))
         
-        pred_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Filter data</h1>", unsafe_allow_html=True)    
-        pred_col1.write('Update the data and click submit')
+#         pred_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Filter data</h1>", unsafe_allow_html=True)    
+#         pred_col1.write('Update the data and click submit')
         
-        pred_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Filter data</h1>", unsafe_allow_html=True)    
-        pred_col2.write('Update the data and click submit')
+#         pred_col2.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Filter data</h1>", unsafe_allow_html=True)    
+#         pred_col2.write('Update the data and click submit')
         
+        # pred_container.dataframe(df_final)
+        
+        
+        pred_form = pred_container.form("Text Form")
+        js = JsCode("""
+                    function(e) {
+                        let api = e.api;
+                        let rowIndex = e.rowIndex;
+                        let col = e.column.colId;
+                        let rowNode = api.getDisplayedRowAtIndex(rowIndex);
+                        api.flashCells({
+                          rowNodes: [rowNode],
+                          columns: [col],
+                          flashDelay: 10000000000
+                        });
+                    };
+                    """)
+        
+        cellsytle_jscode = JsCode("""
+                            function(params) {
+                                if (params.value == 'Yes') {
+                                    return {
+                                        'color': 'white',
+                                        'backgroundColor': 'pink'
+                                    }
+                                } else {
+                                    return {
+                                        'color': 'black',
+                                        'backgroundColor': 'lightgreen'
+                                    }
+                                }
+                            };
+                            """)
+        with pred_form:
+            pred_form.write('Employee Turnover Risk Prediction')
+            gb = GridOptionsBuilder.from_dataframe(df_final)
+            # st.write(gb)
+            # gb.configure_pagination()
+            gb.configure_column("Turnover", cellStyle=cellsytle_jscode)
+            gb.configure_side_bar(filters_panel=True, columns_panel=True)
+            gb.configure_auto_height(autoHeight=True)
+            gb.configure_grid_options(onCellValueChanged=js)
+            gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=20)
+            gb.configure_default_column(groupable=True, value=True, enableRowGroup=True, aggFunc='sum', editable=True)
+            gridOptions = gb.build()
+            gridOptions['defaultColDef']['editable']=True
+            # gridOptions['defaultColDef']['minWidth']=10
+            
+            # st.write(gridOptions['defaultColDef']['editable'])
+            # st.write(gridOptions)
+            
+            response = AgGrid(df_final, width='50%', editable=True, fit_columns_on_grid_load=False, gridOptions=gridOptions,allow_unsafe_jscode=True, reload_data=False)
+            submitted_pred_form = pred_form.form_submit_button()
         
     elif select == 'Log Out':
         clear_state()
