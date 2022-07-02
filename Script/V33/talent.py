@@ -351,7 +351,6 @@ if st.session_state['login_status'] == 'Yes':
         "icon": {"font-size": "20px"},
         "nav-link-selected": {"background-color": "#3498DB"}})  
 
-# Page Setup ---------------------------------------------------------------------------------------------------
     if select == 'Setup':
         setup_place = st.empty()
         setup_container = setup_place.container()
@@ -415,6 +414,7 @@ if st.session_state['login_status'] == 'Yes':
     
     
     # Step 3: Data Validation
+        
         if df is not None:
         # call data validator class
             # data_validator = DataValidator(config, data_loader)
@@ -428,7 +428,7 @@ if st.session_state['login_status'] == 'Yes':
             df_type_num = data_loader.fieldTypeDict['numeric']
             df_type_date = data_loader.fieldTypeDict['date']
             
-            # st.write(df_type_all)
+            st.write(df_type_all)
             
             print(df_type_text)
             print(df_type_num)
@@ -466,6 +466,15 @@ if st.session_state['login_status'] == 'Yes':
             output = {'validation':{'Submitted Entry':validation_output.shape[0], 'Processed Entry':validation_output[validation_output['Exclusion']==False].shape[0],'Invalid Entry':validation_output[validation_output['Exclusion']==True].shape[0], 'Invalid Data': validation_output[validation_output['Exclusion']==True], 'Processed Data': validation_output[validation_output['Exclusion']==False].iloc[: , 2:]}}
             df_clean = output['validation']['Processed Data']
             df_col_list = df_clean.columns.tolist()
+            # df_col_list = output['validation']['All Valid Columns'] 
+            # df_col_dict = output['validation']['All Valid Columns and Types']
+            # df_col_list = list(df_col_dict.keys())
+
+            # End of Yang
+            # step3_col2.write('Step 3: Validate Data')
+            
+            # st.dataframe(df_clean)
+            # st.write(df_clean.shape)
             
             step3_col1, validation_col0, validation_col1,validation_col2,validation_col3,validation_col4, validation_col5, validation_col6= setup_container.columns((1, 0.2, 1, 1, 1, 1, 2, 2))
             step3_col1.image('Image/step3.jpg',use_column_width='auto')
@@ -499,10 +508,9 @@ if st.session_state['login_status'] == 'Yes':
             setup_container.markdown("""---""")
         
     # Step 5: Data Cuts
-            step5_col1, cut_col0, cut_col1, cut_col2 = setup_container.columns((1, 0.2, 2, 6))
-            
-            step5_col1.image('Image/step5.jpg',use_column_width='auto')
-            choose_run = cut_col1.radio('Would you like to analyse entire population?',('Yes', 'No'), index = st.session_state['choose_fullrun_index'], on_change = choose_run_change)
+            step4_col1, step4_col2, step4_col3, step4_col4, step4_col5 = setup_container.columns((1, 2, 1, 1, 1))
+            step4_col1.image('Image/step5.jpg',use_column_width='auto')
+            choose_run = step4_col2.radio('Would you like to analyse entire population?',('Yes', 'No'), index = st.session_state['choose_fullrun_index'], on_change = choose_run_change)
             
             st.session_state['choose_fullrun'] = choose_run
             if st.session_state['choose_fullrun'] == 'No':
@@ -510,66 +518,147 @@ if st.session_state['login_status'] == 'Yes':
             else:
                 st.session_state['choose_fullrun_index'] = 0
 
-    # Step 5a: Start - Run a segment of population - Allow user to choose up to 3 filters (relationship is A and B and C)
+    # Step 4a: Start - Run a segment of population - Allow user to choose up to 3 filters (relationship is A and B and C)
     # If user select yes, use the entire dataset
             df_final = copy.deepcopy(df_clean)
             if st.session_state['choose_fullrun'] == 'No':
-                # cut_col1a.write('Please select a data segment')
-                
-                step5a_col1, cut_col0a, cut_col1a, cut_col2a, cut_col3a, cut_col4a = setup_container.columns((1, 0.2, 2, 2, 2, 2))    
-                cut_col1a.write('Please select data segments, click submit when ready')
-                
-                list_cut1 = df_clean.columns.tolist()
-                feature_1 = cut_col1a.selectbox('1st Cut',list_cut1)
+                step4a_col1, step4a_col2, step4a_col3 = setup_container.columns((1, 1, 1))    
+                feature_1 = step4a_col1.selectbox('1st Cut',df_clean.columns.tolist())
                 st.session_state['feature_1'] = feature_1                
-                if feature_1 in df_type_text:
-                    cut_1 = cut_col1a.multiselect(feature_1,set(df_final[feature_1]), key='choose_cut1')
+                if df_col_dict[feature_1] == 'text':
+                    cut_1 = step4a_col1.multiselect(feature_1,set(df_final[feature_1]), key='choose_cut1')
                     st.session_state['cut_1_text'] = cut_1
                     df_final = df_final[df_final[feature_1].isin(cut_1)]
-                elif feature_1 in df_type_num:
+                elif df_col_dict[feature_1] == 'numeric':
                     range_min = df_final[feature_1].min()
                     range_max = df_final[feature_1].max()
-                    cut_1 = cut_col1a.slider('Select a range of values',range_min,range_max,(range_min,range_max))
+                    cut_1 = step4a_col1.slider('Select a range of values',range_min,range_max,(range_min,range_max))
                     st.session_state['cut_1_numeric'] = cut_1
                     df_final = df_final[(df_final[feature_1]>=min(cut_1)) & (df_final[feature_1]<=max(cut_1))]
             #2nd cut
                 if len(cut_1)>0:
-                    list_cut2 = [e for e in list_cut1 if e != feature_1]
-                    feature_2 = cut_col2a.selectbox('2nd Cut',list_cut2)
-                    if feature_2 in df_type_text:
-                        cut_2 = cut_col2a.multiselect(feature_2,set(df_final[feature_2]), key='choose_cut2')
-                        st.session_state['cut_2_text'] = cut_2
-                        df_final = df_final[df_final[feature_2].isin(cut_2)]
-                    elif feature_2 in df_type_num:
-                        range_min = df_final[feature_2].min()
-                        range_max = df_final[feature_2].max()
-                        cut_2 = cut_col2a.slider('Select a range of values',range_min,range_max,(range_min,range_max))
-                        st.session_state['cut_2_numeric'] = cut_2
-                        df_final = df_final[(df_final[feature_2]>=min(cut_2)) & (df_final[feature_2]<=max(cut_2))]
+                    feature_2 = step4a_col2.selectbox('2nd Cut',df_clean.columns.tolist())
+                    cut_2 = step4a_col2.multiselect(feature_2,set(df_final[feature_2]),key='choose_cut2')
+                    df_final = df_final[df_final[feature_2].isin(cut_2)]
             #3rd cut    
                     if len(cut_2)>0:
-                        list_cut3 = [e for e in list_cut2 if e != feature_2]
-                        feature_3 = cut_col3a.selectbox('3rd Cut',list_cut3)
-                        if feature_3 in df_type_text:
-                            cut_3 = cut_col3a.multiselect(feature_3,set(df_final[feature_3]), key='choose_cut3')
-                            st.session_state['cut_3_text'] = cut_3
-                            df_final = df_final[df_final[feature_3].isin(cut_3)]
-                        elif feature_3 in df_type_num:
-                            range_min = df_final[feature_3].min()
-                            range_max = df_final[feature_3].max()
-                            cut_3 = cut_col3a.slider('Select a range of values',range_min,range_max,(range_min,range_max))
-                            st.session_state['cut_3_numeric'] = cut_3
-                            df_final = df_final[(df_final[feature_3]>=min(cut_3)) & (df_final[feature_3]<=max(cut_3))]
-                        # if len(cut_3)>0:
-                        #     print('a')
+                        # cut_2_message = feature_2+' includes '+', '.join(cut_2)
+                        # setup_container.info('Run a subset where '+cut_1_message+' and '+cut_2_message)
+                        df_temp_2 = df_clean[df_clean[feature_2].isin(cut_2)]
+                        # df_temp_1.to_excel('temp1.xlsx')
+                        feature_3 = step4a_col3.selectbox('3rd Cut',df_clean.columns.tolist())
+                        # setup_container.write(set(df_temp_2[feature_3]))
+                        cut_3 = step4a_col3.multiselect(feature_3,set(df_temp_2[feature_3]),key='choose_cut3')
+                        df_final = df_final[df_final[feature_3].isin(cut_3)]
+                        
+                        if len(cut_3)>0:
+                            print('a')
                             # cut_3_message = feature_3+' includes '+', '.join(cut_3)
                             # setup_container.info('Run a subset where '+cut_1_message+' and '+cut_2_message +' and '+cut_3_message)
-    # Step 5a. End - output a user selected defined dataset
+    # Step 4a. End - output a user selected defined dataset
             setup_container.markdown("""---""")
+            # if len(cut_1)>0:
             df_final.to_excel('final_data.xlsx')
-            # st.write(st.session_state)
     
-# Page Insight ---------------------------------------------------------------------------------------------------
+    
+            
+                
+                
+                # with step4_col3.form("user selection"):
+                #     feature_1 = st.selectbox('1st Cut',output['validation']['All Valid Columns'])
+                #     cut_1 = st.multiselect(feature_1,set(df[feature_1]))
+                #     cut_submit = st.form_submit_button("Submit")
+                
+                # cut2 = st.selectbox('1st Cut',('Email', 'Home phone', 'Mobile phone'))
+                # cut3 = st.selectbox('1st Cut',('Email', 'Home phone', 'Mobile phone'))
+                
+                
+           # Step 5: Run a segment of population - Allow user to choose up to 3 filters
+                # step5_col1, step5_col2, step5_col3, step5_col4 = setup_container.columns((1, 2, 2, 2))
+                # step5_col1.image('Image/step3.jpg',use_column_width='auto')
+                
+        
+        
+#         df_name = setup_container.text_input('Filename', '')
+        
+#         butt_save_data = setup_container.button('Save data')
+        
+#         if butt_save_data:
+#             # setup_container.write(df.to_dict())
+#             st.write(df.head(1))
+#             now = datetime.now()
+#             dt_string = now.strftime("%d/%m/%Y %H:%M:%S")              
+#             data_save = {'Filename':df_name,
+#                     'File' : df.to_dict(),
+#                     'Timestamp' : dt_string} 
+#             db.child(user['localId']).child("Data").push(data_save)
+            
+#             # output = BytesIO()
+#             # writer = pd.ExcelWriter(output, engine='xlsxwriter')
+#             # df.to_excel(writer, index=False, sheet_name='Sheet1')
+#             # workbook = writer.book
+#             # worksheet = writer.sheets['Sheet1']
+#             # writer.save()
+#             # processed_data = output.getvalue()
+            
+#             # save_path = get_excel_file_downloader_url(processed_data, 'save_data.xlsx')
+#             # save_path = 'Test/test.xlsx'
+            
+# #             save_path = uploaded_file
+            
+# #             # uid = user['localId']
+# #             fireb_upload = storage.child(user['localId']).put(save_path,user['idToken'])
+# #             data_url = storage.child(user['localId']).get_url(fireb_upload['downloadTokens']) 
+# #             db.child(user['localId']).child("Data").child("Store_URL").push(data_url)
+
+# #             st.write(save_path)
+#             st.balloons()
+        
+#         butt_load_data = setup_container.button('Load data')
+#         # butt_load_file = st.button('Load file')
+        
+#         if butt_load_data:
+#             data_all = db.child(user['localId']).child("Data").get().val()
+#             if data_all is not None:
+#                 val = db.child(user['localId']).child("Data").get()
+#                 # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
+#                 # val = db.child(user['localId']).child("Data").order_by_child('Timestamp').get()
+#                 val_by_time = db.child(user['localId']).sort(val, "Timestamp")
+#                 myfile = val_by_time.each()[0].val()
+#                 setup_container.write(len(val_by_time.each()))
+#                 setup_container.write(myfile['Filename'])
+#                 setup_container.write(myfile['Timestamp'])
+#                 setup_container.write(pd.DataFrame.from_dict(myfile['File']))
+#                 download = pd.DataFrame.from_dict(myfile['File']).to_excel('download.xlsx')
+                
+                # for myfile in val_by_time.each():
+                #     myfile = myfile.val()
+                #     # if myfile['Filename'] == 'first':
+                #     #     download = pd.DataFrame.from_dict(myfile['File']).to_excel('download.xlsx')
+                #     st.write(myfile['Filename'])
+                #     st.write(myfile['Timestamp'])
+                #     st.write(pd.DataFrame.from_dict(myfile['File']))
+        
+#         if butt_load_file:
+#             file_all = db.child(user['localId']).child("Data").child("Store_URL").get().val()
+#             if file_all is not None:
+#                 val = db.child(user['localId']).child("Data").child("Store_URL").get()
+#                 mydata = val.each()[0]
+#                 # load_data = mydata.val()+'?raw=true'
+#                 load_data = mydata.val()
+#                 st.write(load_data)
+                
+#                 # get_content = requests.get(load_data).content
+#                 # read_data = pd.read_excel(io.StringIO(get_content.decode('utf-8')))
+#                 # read_data = pd.read_csv(get_content, encoding= 'unicode_escape')
+#                 read_data = pd.read_excel(load_data,engine='openpyxl')
+#                 # read_data = pd.read_excel(load_data)
+#                 st.write(read_data)
+                
+#                 # get_content = requests.get(load_data).content
+#                 # r = requests.get(load_data)
+#                 # open('temp.xls', 'wb').write(r.content)
+#                 # read_data = pd.read_excel('temp.xls').122294654120....................................8551545545514545666----------------------------------------------------------------------------
     elif select == 'Insight':
         # st.title('Attrition Analytics')
         # st.write('We are building an analytics platform to better understand turnover risk')
