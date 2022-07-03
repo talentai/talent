@@ -719,6 +719,15 @@ if st.session_state['login_status'] == 'Yes':
         
         model_container.title('Model Performance')
         model_container.markdown("---")
+        
+        performance_col1, performance_col2, performance_col3, performance_col4 = model_container.columns((1, 1, 1, 1))
+        performance_col1.metric(label="Accuracy", value="85%")
+        performance_col2.metric(label="Precision", value="75%")
+        performance_col3.metric(label="Recall", value="55%")
+        performance_col4.metric(label="F1 Score", value="65%")
+        # performance_col4.write("this is a cut from xxx")
+        model_container.markdown("---")
+        
         model_container.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 150%; color: #3498DB; opacity: 0.7'>Prediction Summary</h1>", unsafe_allow_html=True)
         overview_col1, overview_col2, overview_col3 = model_container.columns((1, 1.5, 1.5))
         overview_col1.markdown("<h1 style='text-align: left; vertical-align: bottom; font-size: 110%; color: Black; opacity: 0.7'>Overview</h1>", unsafe_allow_html=True)
